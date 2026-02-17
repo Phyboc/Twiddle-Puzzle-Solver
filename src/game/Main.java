@@ -1,7 +1,9 @@
 package game;
+
 import java.util.*;
 
 public class Main {
+
     public static void main(String[] args) {
 
         Scanner sc = new Scanner(System.in);
@@ -20,25 +22,55 @@ public class Main {
         System.out.println("Choose AI:");
         System.out.println("1. BFS");
         System.out.println("2. A*");
-        System.out.println("3. Divide & Conquer Greedy");
+        System.out.println("3. Spatial D&C");
+        System.out.println("4. Cycle D&C");
+        System.out.println("5. Depth D&C");
 
         int choice = sc.nextInt();
 
         Player computer;
-        if (choice == 3) {
-            computer = new ComputerPlayer2(board);
-        } else {
-            ComputerPlayer cp = new ComputerPlayer(board);
-            cp.setAlgorithm(choice == 1);
-            computer = cp;
+
+        switch (choice) {
+
+            case 1:
+                ComputerPlayer bfs = new ComputerPlayer(board);
+                bfs.setAlgorithm(true);
+                computer = bfs;
+                break;
+
+            case 2:
+                ComputerPlayer aStar = new ComputerPlayer(board);
+                aStar.setAlgorithm(false);
+                computer = aStar;
+                break;
+
+            case 3:
+                ComputerPlayer2 spatial = new ComputerPlayer2(board);
+                spatial.setMode(1);
+                computer = spatial;
+                break;
+
+            case 4:
+                ComputerPlayer2 cycle = new ComputerPlayer2(board);
+                cycle.setMode(2);
+                computer = cycle;
+                break;
+
+            case 5:
+                ComputerPlayer2 depth = new ComputerPlayer2(board);
+                depth.setMode(3);
+                computer = depth;
+                break;
+
+            default:
+                System.out.println("Invalid choice.");
+                return;
         }
 
         if (mode == 1) {
-            // Human vs Computer
             Player human = new HumanPlayer(board);
             new GameEngine(board, human, computer).startGame();
         } else {
-            // Computer only, step-by-step
             runComputerOnly(board, computer, sc);
         }
     }
@@ -48,11 +80,11 @@ public class Main {
         System.out.println("\nInitial Board:");
         board.print();
 
-        sc.nextLine(); // consume leftover newline
+        sc.nextLine();
 
         while (!board.isSolved()) {
 
-            System.out.print("\nPress ENTER for computer to make one move (or type q to quit): ");
+            System.out.print("\nPress ENTER for computer move (or q to quit): ");
             String input = sc.nextLine();
 
             if (input.equalsIgnoreCase("q")) break;
@@ -64,10 +96,9 @@ public class Main {
             board.print();
         }
 
-        if (board.isSolved()) {
+        if (board.isSolved())
             System.out.println("🎉 Puzzle Solved!");
-        } else {
+        else
             System.out.println("Stopped by user.");
-        }
     }
 }

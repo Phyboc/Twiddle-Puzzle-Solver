@@ -19,7 +19,7 @@ public class TwiddleGUI extends JFrame {
 
     public TwiddleGUI() {
         setTitle("Twiddle Puzzle");
-        setSize(520, 700);
+        setSize(520, 720);
         setLayout(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -29,15 +29,19 @@ public class TwiddleGUI extends JFrame {
         add(sizeBox);
 
         setupControls();
-
         resetBoard();
 
         setVisible(true);
     }
 
     private void setupControls() {
+
         algoBox = new JComboBox<>(new String[]{
-                "A*", "BFS", "Divide & Conquer"
+                "A*",
+                "BFS",
+                "Spatial D&C",
+                "Cycle D&C",
+                "Depth D&C"
         });
         algoBox.setBounds(40, 500, 200, 30);
         add(algoBox);
@@ -47,7 +51,7 @@ public class TwiddleGUI extends JFrame {
         add(moveLabel);
 
         JButton comp = new JButton("Computer Move");
-        comp.setBounds(40, 610, 440, 30);
+        comp.setBounds(40, 650, 440, 30);
         comp.addActionListener(e -> computerMove());
         add(comp);
     }
@@ -59,7 +63,6 @@ public class TwiddleGUI extends JFrame {
         if (buttonsPanel != null) remove(buttonsPanel);
 
         board = new Board(N);
-        computer = new ComputerPlayer(board);
 
         setupGrid(N);
         setupMoveButtons(N);
@@ -86,46 +89,76 @@ public class TwiddleGUI extends JFrame {
                 cells[i][j] = l;
                 gridPanel.add(l);
             }
+
         add(gridPanel);
     }
 
     private void setupMoveButtons(int N) {
         buttonsPanel = new JPanel(new GridLayout(0, N - 1));
-        buttonsPanel.setBounds(40, 550, 440, 50);
+        buttonsPanel.setBounds(40, 550, 440, 80);
 
         for (int i = 1; i <= board.totalMoves(); i++) {
             final int mv = i;
             JButton b = new JButton("" + i);
-            b.addActionListener(e -> doMove(mv));
+            b.addActionListener(e -> humanMove(mv));
             buttonsPanel.add(b);
         }
+
         add(buttonsPanel);
     }
 
-    private void doMove(int mv) {
+    // HUMAN MOVE
+    private void humanMove(int mv) {
         board.executeMove(mv);
         refreshBoard();
         updateMoves();
         checkSolved();
     }
 
+    // COMPUTER MOVE
     private void computerMove() {
+
         String choice = (String) algoBox.getSelectedItem();
 
-        if (choice.equals("Divide & Conquer")) {
-            if (!(computer instanceof ComputerPlayer2))
-                computer = new ComputerPlayer2(board);
-        } else {
-            if (!(computer instanceof ComputerPlayer)) {
-                ComputerPlayer cp = new ComputerPlayer(board);
-                cp.setAlgorithm(choice.equals("BFS"));
-                computer = cp;
-            } else {
-                ((ComputerPlayer) computer).setAlgorithm(choice.equals("BFS"));
-            }
+        switch (choice) {
+
+            case "A*":
+                ComputerPlayer aStar = new ComputerPlayer(board);
+                aStar.setAlgorithm(false);
+                computer = aStar;
+                break;
+
+            case "BFS":
+                ComputerPlayer bfs = new ComputerPlayer(board);
+                bfs.setAlgorithm(true);
+                computer = bfs;
+                break;
+
+            case "Spatial D&C":
+                ComputerPlayer2 spatial = new ComputerPlayer2(board);
+                spatial.setMode(1);
+                computer = spatial;
+                break;
+
+            case "Cycle D&C":
+                ComputerPlayer2 cycle = new ComputerPlayer2(board);
+                cycle.setMode(2);
+                computer = cycle;
+                break;
+
+            case "Depth D&C":
+                ComputerPlayer2 depth = new ComputerPlayer2(board);
+                depth.setMode(3);
+                computer = depth;
+                break;
         }
 
-        doMove(computer.getMove());
+        int move = computer.getMove();
+        board.executeMove(move);
+
+        refreshBoard();
+        updateMoves();
+        checkSolved();
     }
 
     private void refreshBoard() {

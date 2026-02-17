@@ -1,61 +1,64 @@
 package game;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class ComputerPlayer2 extends AbstractPlayer {
-    int finalgrid[][];
-    private Map<String, Integer> bestH = new HashMap<>(); //this is for dominance pruning, 
-                                                // it stores the best heuristic value for a given state
+
+    private int finalgrid[][];
+    private Map<String, Integer> bestH = new HashMap<>();
+    private Set<String> visitedStates = new HashSet<>();
+    private int lastMove = -1;
+
+    // 1 = Spatial
+    // 2 = Cycle
+    // 3 = Depth
+    private int mode = 1;
+
+    private static final int LOOKAHEAD = 3;
+
+    public void setMode(int m) {
+        this.mode = m;
+    }
 
     public ComputerPlayer2(Board board) {
         super(board);
-        this.finalgrid = new int[board.getGrid().length][board.getGrid()[0].length];
+        this.finalgrid = new int[board.size()][board.size()];
         int val = 1;
-        for (int i = 0; i<finalgrid.length; i++){
-            for (int j = 0; j<finalgrid[0].length; j++){
+        for (int i = 0; i < finalgrid.length; i++)
+            for (int j = 0; j < finalgrid[0].length; j++)
                 finalgrid[i][j] = val++;
-            }
-        }
     }
-    //these are to override the methods in abstract player or more like player interface
+
     @Override
     public int getMove() {
-        return solvewithdc();
+        bestH.clear(); 
+        int[][] grid = board.getGrid();
+        visitedStates.add(encode(grid));   
+        int move;
+        if (mode == 2)
+            move = solveCycleDC();
+        else if (mode == 3)
+            move = solveDepthDC();
+        else
+            move = solvewithdc();
+
+        lastMove = move;   
+        return move;
     }
+
     @Override
     public String getName() {
-        return "Divide and Conquer using Greedy Heuristic";
+        return "Divide & Conquer Variants";
     }
 
-    
-    //this is to store the direction sum and the element number
-    // static class Element{
-    //     int num;
-    //     String dir;
-    //     Element(int num, String dir){
-    //         this.num = num;
-    //         this.dir = dir;
-    //     }
-    //     Element(int num){
-    //         this.num = num;
-    //         this.dir = "";
-    //     }
-    // }
+// spatial d&c
 
-    //this is to store the rotation number and the rows & columns that rotate
-    static class Rotator{
+    static class Rotator {
         int r1, r2, c1, c2;
         int h;
         int moveno;
         Rotator(int r1, int r2, int c1, int c2,int h){
-            this.r1 = r1;
-            this.r2 = r2;
-            this.c1 = c1;
-            this.c2 = c2;
+            this.r1 = r1; this.r2 = r2;
+            this.c1 = c1; this.c2 = c2;
             this.h = h;
         }
     }
@@ -63,113 +66,232 @@ public class ComputerPlayer2 extends AbstractPlayer {
     private int solvewithdc() {
         int[][] grid = board.getGrid();
         Rotator r = rotation(grid, 0, grid.length - 1, 0, grid[0].length - 1);
-        if (r == null) return 1; // safe default move
+        if (r == null) return 1;
         return r.moveno;
     }
 
-
-    //this method recursively divides the nxn matrix till it is 2x2 matrix, initializes the rotator class 
-    // and also calculates heuristics and returns the rotator class var that has max heuristics.    
     private Rotator rotation(int[][] matrix, int s1, int s2, int e1, int e2){
         if (s1 >= s2 || e1 >= e2) return null;
+
         if (((s2 - s1) == 1) && ((e2 - e1) == 1)) {
             int[][] next = rotate(matrix, s1, s2, e1, e2);
-            int denom = h2(next, s1,s2,e1,e2);
-            int h = h1(next, s1,s2,e1,e2) + denom;
-            //dominance pruning is done here
+            int h = h1(next,s1,s2,e1,e2) + h2(next);
+
             String key = encode(next);
-            if (bestH.containsKey(key) || (bestH.containsKey(key) && bestH.get(key) <= h))
+            if (bestH.containsKey(key) && bestH.get(key) <= h)
                 return null;
 
             bestH.put(key, h);
-            Rotator rotator = new Rotator(s1,s2,e1,e2,h);
-            rotator.moveno = getMoveno(matrix, s1,s2,e1,e2);
-            return rotator;
+            Rotator rot = new Rotator(s1,s2,e1,e2,h);
+            rot.moveno = getMoveno(matrix,s1,s2,e1,e2);
+            return rot;
         }
-        //Move ordering is done here
+
         List<Rotator> children = new ArrayList<>();
         children.add(rotation(matrix, s1, s2-1, e1, e2-1));
         children.add(rotation(matrix, s1+1, s2, e1, e2-1));
         children.add(rotation(matrix, s1, s2-1, e1+1, e2));
         children.add(rotation(matrix, s1+1, s2, e1+1, e2));
         children.removeIf(Objects::isNull);
-        children.sort((a, b) -> a.h - b.h);
-        return children.isEmpty() ? null : children.get(0);
-    }
-    
-    
-
-    //this method is to calculate the move number based on the rows and columns that are rotating
-    private int getMoveno(int[][] matrix, int s1, int s2, int e1, int e2){
-        int cols = matrix[0].length;
-        int moveNo = s1 * (cols-1) + e1 + 1; 
-        return moveNo;
+        children.sort((a,b)->a.h-b.h);
+        return children.isEmpty()?null:children.get(0);
     }
 
-    //this method is to calculate the heuristic 1 which is the direction value sum
-    private int h1(int[][] matrix, int s1, int s2, int e1, int e2){
-        int sum = 0;
-        for (int i = s1; i<=s2; i++){
-            for (int j = e1; j<=e2; j++){
-                sum += Math.abs(matrix[i][j] - finalgrid[i][j]);
+// cycle d&c
+
+    private int solveCycleDC() {
+        int[][] grid = board.getGrid();
+        List<List<Integer>> cycles = getCycles(grid);
+        if (cycles.isEmpty()) return 1;
+
+        List<Integer> largest = cycles.stream()
+                .max(Comparator.comparingInt(List::size))
+                .orElse(null);
+
+        int bestMove = 1;
+        int bestScore = Integer.MAX_VALUE;
+
+        for (int m = 1; m <= board.totalMoves(); m++) {
+
+            if (m == lastMove) continue; 
+            int[][] next = rotateCopy(grid, m);
+            String key = encode(next);
+
+            if (visitedStates.contains(key)) continue; 
+
+            int score = cycleScore(next, largest) + h2(next);
+
+            if (bestH.containsKey(key) && bestH.get(key) <= score)
+                continue;
+
+            bestH.put(key, score);
+
+            if (score == 0)
+                return m;
+
+            if (score < bestScore) {
+                bestScore = score;
+                bestMove = m;
             }
         }
-        return sum;
+
+        return bestMove;
     }
 
-    //this method is to calculate the heuristic 2 which is the 
-    // number of misplaced elements in the in full matrix
-    private int h2(int[][] matrix, int s1, int s2, int e1, int e2){
-        int count = 0;
-        int val = 1;
-        for (int i = 0; i<=matrix.length-1; i++){
-            for (int j = 0; j<=matrix[0].length-1; j++){
-                if (matrix[i][j] != val++) count++;
+
+    private List<List<Integer>> getCycles(int[][] grid) {
+        int N = grid.length;
+        boolean[] visited = new boolean[N*N];
+        List<List<Integer>> cycles = new ArrayList<>();
+
+        for (int i = 0; i < N*N; i++) {
+            if (visited[i]) continue;
+            List<Integer> cycle = new ArrayList<>();
+            int cur = i;
+            while (!visited[cur]) {
+                visited[cur] = true;
+                cycle.add(cur);
+                int r = cur / N;
+                int c = cur % N;
+                cur = grid[r][c] - 1;
             }
+            if (cycle.size() > 1)
+                cycles.add(cycle);
         }
-        return count;
+        return cycles;
     }
 
-    //this matrix is to rotate any matrix given the rows and columns number
+    private int cycleScore(int[][] g, List<Integer> cycle) {
+        int N = g.length;
+        int score = 0;
+        for (int idx : cycle) {
+            int r = idx / N;
+            int c = idx % N;
+            if (g[r][c] != finalgrid[r][c])
+                score++;
+        }
+        return score;
+    }
+
+// depth d&c
+
+    private int solveDepthDC() {
+        int[][] grid = board.getGrid();
+        int bestMove = 1;
+        int bestScore = Integer.MAX_VALUE;
+
+        for (int m = 1; m <= board.totalMoves(); m++) {
+
+            if (m == lastMove) continue;
+
+            int[][] next = rotateCopy(grid, m);
+            String key = encode(next);
+
+            if (visitedStates.contains(key)) continue;
+
+            int score = exploreDepth(next, LOOKAHEAD - 1, bestScore);
+
+            if (score < bestScore) {
+                bestScore = score;
+                bestMove = m;
+            }
+
+            if (bestScore == 0)
+                return bestMove;
+        }
+
+        return bestMove;
+    }
+
+
+    private int exploreDepth(int[][] state, int depth, int alpha) {
+
+        int currentH = h2(state);
+
+        if (depth == 0 || currentH == 0)
+            return currentH;
+
+        String key = encode(state);
+
+        if (bestH.containsKey(key) && bestH.get(key) <= currentH)
+            return Integer.MAX_VALUE;
+
+        bestH.put(key, currentH);
+
+        int best = Integer.MAX_VALUE;
+
+        for (int m = 1; m <= board.totalMoves(); m++) {
+
+            int[][] next = rotateCopy(state, m);
+            int score = exploreDepth(next, depth - 1, best);
+
+            best = Math.min(best, score);
+
+            // Alpha-style pruning
+            if (best <= alpha)
+                break;
+        }
+
+        return best;
+    }
+
+// utilities
+
+    private int[][] rotateCopy(int[][] src, int move) {
+        int N = src.length;
+        int[][] g = new int[N][N];
+        for (int i = 0; i < N; i++)
+            g[i] = src[i].clone();
+
+        int r = (move - 1) / (N - 1);
+        int c = (move - 1) % (N - 1);
+
+        int tmp = g[r][c];
+        g[r][c] = g[r][c + 1];
+        g[r][c + 1] = g[r + 1][c + 1];
+        g[r + 1][c + 1] = g[r + 1][c];
+        g[r + 1][c] = tmp;
+
+        return g;
+    }
+
     private int[][] rotate(int[][] matrix, int r1, int r2, int c1, int c2) {
-        int rows = matrix.length;
-        int cols = matrix[0].length;
-        int[][] copy = new int[rows][cols];
-        for (int i = 0; i < rows; i++) {
-            System.arraycopy(matrix[i], 0, copy[i], 0, cols);
-        }
+        int[][] copy = new int[matrix.length][matrix[0].length];
+        for (int i = 0; i < matrix.length; i++)
+            copy[i] = matrix[i].clone();
+
         copy[r1][c1] = matrix[r1][c2];
         copy[r2][c1] = matrix[r1][c1];
         copy[r2][c2] = matrix[r2][c1];
         copy[r1][c2] = matrix[r2][c2];
         return copy;
-}
-
-    //this matrix is to get the max heuristics among the 4 possible rotations of a matrix 
-    // and return the rotator class var that has max heuristics
-    // private Rotator max(Rotator a, Rotator b, Rotator c, Rotator d){
-    //     Rotator max = a;
-    //     if (b.h > max.h) max = b;
-    //     if (c.h > max.h) max = c;
-    //     if (d.h > max.h) max = d;
-    //     return max;
-    // }
-
-    //this method is to encode the matrix into a string format for storing in the visited set for pruning
-    private String encode(int[][] g) {
-        StringBuilder sb = new StringBuilder();
-        for (int[] row : g)
-            for (int v : row)
-                sb.append(v).append(',');
-        return sb.toString();
     }
 
-    //this method is to check if the matrix is solved or not by comparing it with the final grid
-    // private boolean isSolved(int[][] g) {
-    //     int v = 1;
-    //     for (int i = 0; i < g.length; i++)
-    //         for (int j = 0; j < g[0].length; j++)
-    //             if (g[i][j] != v++) return false;
-    //     return true;
-    // }
+    private int getMoveno(int[][] matrix, int s1, int s2, int e1, int e2){
+        return s1 * (matrix.length-1) + e1 + 1;
+    }
+
+    private int h1(int[][] matrix,int s1,int s2,int e1,int e2){
+        int sum=0;
+        for(int i=s1;i<=s2;i++)
+            for(int j=e1;j<=e2;j++)
+                sum+=Math.abs(matrix[i][j]-finalgrid[i][j]);
+        return sum;
+    }
+
+    private int h2(int[][] matrix){
+        int count=0,v=1;
+        for(int i=0;i<matrix.length;i++)
+            for(int j=0;j<matrix[0].length;j++)
+                if(matrix[i][j]!=v++)count++;
+        return count;
+    }
+
+    private String encode(int[][] g){
+        StringBuilder sb=new StringBuilder();
+        for(int[] r:g)
+            for(int x:r)
+                sb.append(x).append(',');
+        return sb.toString();
+    }
 }
