@@ -32,6 +32,6 @@ public class GameEngine {
             board.printBoard();
         }
 
-        System.out.println("🎉 Puzzle Solved!");
+        System.out.println(" Puzzle Solved!");
     }
 }
