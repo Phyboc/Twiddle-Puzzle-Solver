@@ -38,6 +38,8 @@ public class ComputerPlayer2 extends AbstractPlayer {
             move = solveCycleDC();
         else if (mode == 3)
             move = solveDepthDC();
+        else if (mode == 4)          // <--- THIS IS NEW
+            move = solveLayerByLayer();
         else
             move = solvewithdc();
 
@@ -47,7 +49,10 @@ public class ComputerPlayer2 extends AbstractPlayer {
 
     @Override
     public String getName() {
-        return "Divide & Conquer Variants";
+        if (mode==4) return "Layer D&C";
+        if (mode==3) return "Depth D&C";
+        if (mode==2) return "Cycle D&C";
+        return "Spatial D&C";
     }
 
 // spatial d&c
@@ -202,8 +207,130 @@ public class ComputerPlayer2 extends AbstractPlayer {
 
         return bestMove;
     }
+    
+//first - shr
+    private int solveLayerByLayer() {
+        int[][] grid = board.getGrid();
+        int N = grid.length;
 
+        for (int k = 0; k < N - 1; k++) {
 
+            for (int c = k; c < N; c++) {
+                int targetVal = finalgrid[k][c];
+                if (grid[k][c] != targetVal) {
+                    return findMoveForTile(grid, targetVal, k, c, k);
+                }
+            }
+
+            for (int r = k + 1; r < N; r++) {
+                int targetVal = finalgrid[r][k];
+                if (grid[r][k] != targetVal) {
+                    return findMoveForTile(grid, targetVal, r, k, k);
+                }
+            }
+        }
+        return 1; 
+    }
+
+    private int findMoveForTile(int[][] startGrid, int targetVal, int destR, int destC, int lockedOffset) {
+        PriorityQueue<Node> pq = new PriorityQueue<>(Comparator.comparingInt(n -> n.f));
+        Map<String, Integer> visited = new HashMap<>();
+
+        Node startNode = new Node(startGrid, -1, null, 0);
+        startNode.h = calculateHeuristic(startGrid, targetVal, destR, destC);
+        startNode.f = startNode.h;
+
+        pq.add(startNode);
+        visited.put(encode(startGrid), 0);
+
+        int maxDepth = 15;
+
+        while (!pq.isEmpty()) {
+            Node curr = pq.poll();
+
+            if (curr.grid[destR][destC] == targetVal) {
+                return getFirstMove(curr);
+            }
+
+            if (curr.g > maxDepth) continue;
+
+            for (int m = 1; m <= board.totalMoves(); m++) {
+                if (!isMoveValidForLayer(m, lockedOffset, startGrid.length)) continue;
+
+                int[][] nextGrid = rotateCopy(curr.grid, m);
+                String key = encode(nextGrid);
+                int newCost = curr.g + 1;
+
+                if (!visited.containsKey(key) || visited.get(key) > newCost) {
+                    visited.put(key, newCost);
+                    Node nextNode = new Node(nextGrid, m, curr, newCost);
+                    nextNode.h = calculateHeuristic(nextGrid, targetVal, destR, destC);
+                    nextNode.f = nextNode.g + nextNode.h;
+                    pq.add(nextNode);
+                }
+            }
+        }
+        
+        return (int) (Math.random() * board.totalMoves()) + 1;
+    }
+
+    private int calculateHeuristic(int[][] g, int targetVal, int destR, int destC) {
+        int h = 0;
+        int N = g.length;
+
+        for (int r = 0; r < N; r++) {
+            for (int c = 0; c < N; c++) {
+                if (g[r][c] == targetVal) {
+                    h += Math.abs(r - destR) + Math.abs(c - destC);
+                    break;
+                }
+            }
+        }
+
+        outer: for (int r = 0; r < N; r++) {
+            for (int c = 0; c < N; c++) {
+                if (r == destR && c == destC) break outer;
+
+                int expectedVal = finalgrid[r][c];
+                if (g[r][c] != expectedVal) {
+                    h += 100;
+                }
+            }
+        }
+        return h;
+    }
+
+    private class Node {
+        int[][] grid;
+        int move;
+        Node parent;
+        int g; 
+        int h; 
+        int f; 
+
+        Node(int[][] grid, int move, Node parent, int g) {
+            this.grid = grid;
+            this.move = move;
+            this.parent = parent;
+            this.g = g;
+        }
+    }
+
+    private boolean isMoveValidForLayer(int move, int offset, int N) {
+        int r = (move - 1) / (N - 1);
+        int c = (move - 1) % (N - 1);
+        return r >= offset && c >= offset;
+    }
+
+    
+
+    private int getFirstMove(Node n) {
+        while (n.parent != null && n.parent.parent != null) {
+            n = n.parent;
+        }
+        return n.move;
+    }
+//last - shr
     private int exploreDepth(int[][] state, int depth, int alpha) {
 
         int currentH = h2(state);
