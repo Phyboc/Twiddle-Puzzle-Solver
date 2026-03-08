@@ -1,9 +1,7 @@
 package game;
-
 import java.util.*;
 
 public class Main {
-
     public static void main(String[] args) {
 
         Scanner sc = new Scanner(System.in);
@@ -65,18 +63,31 @@ public class Main {
 
             case 6:
 
-                Map<String,Integer> dp = ComputerPlayer3.buildDPTable(board);
+                ComputerPlayer3.DPData dp = ComputerPlayer3.buildDPTable(board);
+                System.out.println("DP table built. States: " + dp.stateCount());
+                if (dp.isTruncated()) {
+                    System.out.println("Warning: DP table hit memory/state limit. Solver will use partial policy.");
+                }
 
-                System.out.println("DP table built. States: " + dp.size());
+                int reshuffles = 0;
+                while (!ComputerPlayer3.isSolvable(board, dp) && reshuffles < 2000) {
+                    board.randomize();
+                    reshuffles++;
+                }
+
+                if (!ComputerPlayer3.isSolvable(board, dp)) {
+                    System.out.println("Could not find a solvable random board using current DP table.");
+                    System.out.println("Try smaller N (recommended N <= 3) or increase DP state limit.");
+                    return;
+                }
 
                 runDPGame(board, dp, sc);
                 return;
-                
+               
             default:
                 System.out.println("Invalid choice.");
                 return;
         }
-
         if (mode == 1) {
             Player human = new HumanPlayer(board);
             new GameEngine(board, human, computer).startGame();
@@ -86,132 +97,58 @@ public class Main {
     }
 
     private static void runComputerOnly(Board board, Player computer, Scanner sc) {
-
         System.out.println("\nInitial Board:");
         board.print();
-
         sc.nextLine();
-
         while (!board.isSolved()) {
-
             System.out.print("\nPress ENTER for computer move (or q to quit): ");
             String input = sc.nextLine();
-
             if (input.equalsIgnoreCase("q")) break;
-
             int move = computer.getMove();
-
             System.out.println("Computer chooses move: " + move);
             board.executeMove(move);
             board.print();
         }
-
         if (board.isSolved())
             System.out.println("🎉 Puzzle Solved!");
         else
             System.out.println("Stopped by user.");
     }
     
-    private static void runDPGame(Board board, Map<String,Integer> dp, Scanner sc) {
-
+    private static void runDPGame(Board board, ComputerPlayer3.DPData dp, Scanner sc) {
         System.out.println("\nInitial Board:");
         board.print();
-
         Set<String> visited = new HashSet<>();
-
         sc.nextLine();
-
         while (!board.isSolved()) {
-
             System.out.print("\nPress ENTER for next move (or q to quit): ");
             String input = sc.nextLine();
-
             if (input.equalsIgnoreCase("q"))
                 break;
 
-            int[][] grid = board.getGrid();
-
-            if (!dp.containsKey(encode(board.getGrid()))) {
+            if (!ComputerPlayer3.isSolvable(board, dp)) {
                 System.out.println("This board configuration cannot reach the goal.");
                 return;
             }
 
-            visited.add(encode(grid));
-
-            int bestMove = -1;
-            int bestCost = Integer.MAX_VALUE;
-
-            for (int m = 1; m <= board.totalMoves(); m++) {
-
-                int[][] next = rotateCopy(grid, m);
-                String key = encode(next);
-
-                if (visited.contains(key))
-                    continue;
-
-                Integer cost = dp.get(key);
-
-                if (cost != null && cost < bestCost) {
-
-                    bestCost = cost;
-                    bestMove = m;
-                }
-            }
-
-            // fallback if all neighbors visited
-            if (bestMove == -1) {
-                for (int m = 1; m <= board.totalMoves(); m++) {
-                    int[][] next = rotateCopy(grid, m);
-                    String key = encode(next);
-
-                    Integer cost = dp.get(key);
-
-                    if (cost != null && cost < bestCost) {
-                        bestCost = cost;
-                        bestMove = m;
-                    }
-                }
-            }
-
+            visited.add(encode(board.getGrid()));
+            int bestMove = ComputerPlayer3.chooseMove(board, dp, visited);
             System.out.println("Computer chooses move: " + bestMove);
-
             board.executeMove(bestMove);
+            Integer d = ComputerPlayer3.distanceToGoal(board, dp);
+            if (d != null)
+                System.out.println("Estimated remaining moves (DP): " + d);
             board.print();
         }
-
         if (board.isSolved())
             System.out.println("Puzzle solved!");
     }
     
-    private static int[][] rotateCopy(int[][] src, int move) {
-
-        int N = src.length;
-
-        int[][] g = new int[N][N];
-
-        for (int i = 0; i < N; i++)
-            g[i] = src[i].clone();
-
-        int r = (move - 1) / (N - 1);
-        int c = (move - 1) % (N - 1);
-
-        int tmp = g[r][c];
-        g[r][c] = g[r][c + 1];
-        g[r][c + 1] = g[r + 1][c + 1];
-        g[r + 1][c + 1] = g[r + 1][c];
-        g[r + 1][c] = tmp;
-
-        return g;
-    }
-    
     private static String encode(int[][] g) {
-
         StringBuilder sb = new StringBuilder();
-
         for (int[] r : g)
             for (int x : r)
                 sb.append(x).append(',');
-
         return sb.toString();
     }
 }

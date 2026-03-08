@@ -7,16 +7,24 @@ public class ComputerPlayer2 extends AbstractPlayer {
     private Map<String, Integer> bestH = new HashMap<>();
     private Set<String> visitedStates = new HashSet<>();
     private int lastMove = -1;
+    
+    // DP table for optimal solving
+    private Map<String, Integer> dpTable = null;
 
     // 1 = Spatial
     // 2 = Cycle
     // 3 = Depth
+    // 4 = DP-based optimal
     private int mode = 1;
 
     private static final int LOOKAHEAD = 3;
 
     public void setMode(int m) {
         this.mode = m;
+    }
+    
+    public void setDPTable(Map<String, Integer> dpTable) {
+        this.dpTable = dpTable;
     }
 
     public ComputerPlayer2(Board board) {
