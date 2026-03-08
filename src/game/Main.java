@@ -62,26 +62,21 @@ public class Main {
                 break;
 
             case 6:
+                DPFlow.Initialization init = DPFlow.initialize(board);
+                ComputerPlayer3.DPData dp = init.session().data();
 
-                ComputerPlayer3.DPData dp = ComputerPlayer3.buildDPTable(board);
                 System.out.println("DP table built. States: " + dp.stateCount());
                 if (dp.isTruncated()) {
                     System.out.println("Warning: DP table hit memory/state limit. Solver will use partial policy.");
                 }
 
-                int reshuffles = 0;
-                while (!ComputerPlayer3.isSolvable(board, dp) && reshuffles < 2000) {
-                    board.randomize();
-                    reshuffles++;
-                }
-
-                if (!ComputerPlayer3.isSolvable(board, dp)) {
+                if (!init.session().isSolvable(board)) {
                     System.out.println("Could not find a solvable random board using current DP table.");
                     System.out.println("Try smaller N (recommended N <= 3) or increase DP state limit.");
                     return;
                 }
 
-                runDPGame(board, dp, sc);
+                runDPGame(board, init.session(), sc);
                 return;
                
             default:
@@ -115,10 +110,9 @@ public class Main {
             System.out.println("Stopped by user.");
     }
     
-    private static void runDPGame(Board board, ComputerPlayer3.DPData dp, Scanner sc) {
+    private static void runDPGame(Board board, DPFlow.Session session, Scanner sc) {
         System.out.println("\nInitial Board:");
         board.print();
-        Set<String> visited = new HashSet<>();
         sc.nextLine();
         while (!board.isSolved()) {
             System.out.print("\nPress ENTER for next move (or q to quit): ");
@@ -126,29 +120,18 @@ public class Main {
             if (input.equalsIgnoreCase("q"))
                 break;
 
-            if (!ComputerPlayer3.isSolvable(board, dp)) {
+            if (!session.isSolvable(board)) {
                 System.out.println("This board configuration cannot reach the goal.");
                 return;
             }
 
-            visited.add(encode(board.getGrid()));
-            int bestMove = ComputerPlayer3.chooseMove(board, dp, visited);
-            System.out.println("Computer chooses move: " + bestMove);
-            board.executeMove(bestMove);
-            Integer d = ComputerPlayer3.distanceToGoal(board, dp);
-            if (d != null)
-                System.out.println("Estimated remaining moves (DP): " + d);
+            DPFlow.StepResult step = session.playNextMove(board);
+            System.out.println("Computer chooses move: " + step.move());
+            if (step.estimatedRemaining() != null)
+                System.out.println("Estimated remaining moves (DP): " + step.estimatedRemaining());
             board.print();
         }
         if (board.isSolved())
             System.out.println("Puzzle solved!");
-    }
-    
-    private static String encode(int[][] g) {
-        StringBuilder sb = new StringBuilder();
-        for (int[] r : g)
-            for (int x : r)
-                sb.append(x).append(',');
-        return sb.toString();
     }
 }
