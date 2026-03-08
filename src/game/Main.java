@@ -131,6 +131,11 @@ public class Main {
 
             int[][] grid = board.getGrid();
 
+            if (!dp.containsKey(encode(board.getGrid()))) {
+                System.out.println("This board configuration cannot reach the goal.");
+                return;
+            }
+
             visited.add(encode(grid));
 
             int bestMove = -1;
