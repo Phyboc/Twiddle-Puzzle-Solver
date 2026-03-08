@@ -62,6 +62,11 @@ public class Main {
                 computer = depth;
                 break;
 
+            case 6:
+                ComputerPlayer3 hdp = new ComputerPlayer3(board);
+                computer = hdp;
+                break;
+                
             default:
                 System.out.println("Invalid choice.");
                 return;
