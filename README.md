@@ -38,8 +38,6 @@ The goal state is the board in increasing order:
 - `src/game/ComputerPlayer*.java` — AI implementations
 - `DAA - Twiddle - Phase 2 Sivasubramani.pdf` — project/report document
 
-> Note: I inspected the repo via code search; results can be incomplete (limited). You can browse the full source tree here:  
-> `https://github.com/Phyboc/Twiddle-Puzzle-Solver/tree/main/src`
 
 ## Requirements
 
