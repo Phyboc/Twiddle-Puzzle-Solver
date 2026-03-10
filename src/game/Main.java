@@ -78,7 +78,9 @@ public class Main {
 
                 runDPGame(board, init.session(), sc);
                 return;
-               
+            case 7: 
+				computer = new BacktrackingPlayer(board);
+				break;   
             default:
                 System.out.println("Invalid choice.");
                 return;

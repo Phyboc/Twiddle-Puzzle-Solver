@@ -1,7 +1,6 @@
 package gui;
 
 import game.*;
-
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -81,13 +80,7 @@ public class TwiddleGUI extends JFrame {
         add(sizeBox);
 
         algoBox = new JComboBox<>(new String[]{
-                "A*",
-                "BFS",
-                "Spatial D&C",
-                "Cycle D&C",
-                "Depth D&C",
-                "MDF DP"
-        });
+        "A*", "BFS", "Spatial D&C", "Cycle D&C", "Depth D&C", "MDF DP", "Backtracking AI"});
         styleComboBox(algoBox);
         add(algoBox);
 
@@ -225,49 +218,43 @@ public class TwiddleGUI extends JFrame {
 
     private void computerMove() {
         String choice = (String) algoBox.getSelectedItem();
-
         if ("MDF DP".equals(choice)) {
             runDPMove();
             return;
         }
 
-        switch (choice) {
-            case "A*":
-                ComputerPlayer aStar = new ComputerPlayer(board);
-                aStar.setAlgorithm(false);
-                computer = aStar;
-                break;
-            case "BFS":
-                ComputerPlayer bfs = new ComputerPlayer(board);
-                bfs.setAlgorithm(true);
-                computer = bfs;
-                break;
-            case "Spatial D&C":
-                ComputerPlayer2 spatial = new ComputerPlayer2(board);
-                spatial.setMode(1);
-                computer = spatial;
-                break;
-            case "Cycle D&C":
-                ComputerPlayer2 cycle = new ComputerPlayer2(board);
-                cycle.setMode(2);
-                computer = cycle;
-                break;
-            case "Depth D&C":
-                ComputerPlayer2 depth = new ComputerPlayer2(board);
-                depth.setMode(3);
-                computer = depth;
-                break;
-            default:
-                return;
+        
+        if ("Backtracking AI".equals(choice)) {
+            computer = new BacktrackingPlayer(board);
+        } else {
+            
+            switch (choice) {
+                case "A*": /* ... */ break;
+                // ...
+            }
         }
 
-        int move = computer.getMove();
-        board.executeMove(move);
-
-        refreshBoard();
-        updateMoves();
-        statusLabel.setText("Status: " + choice + " chose move " + move);
-        checkSolved();
+        
+        statusLabel.setText("Status: " + choice + " is thinking...");
+        new SwingWorker<Integer, Void>() {
+            @Override
+            protected Integer doInBackground() {
+                return computer.getMove();
+            }
+            @Override
+            protected void done() {
+                try {
+                    int move = get();
+                    board.executeMove(move);
+                    refreshBoard();
+                    updateMoves();
+                    statusLabel.setText("Status: " + choice + " chose move " + move);
+                    checkSolved();
+                } catch (Exception e) {
+                    statusLabel.setText("Status: Calculation failed");
+                }
+            }
+        }.execute();
     }
 
     private void runDPMove() {
