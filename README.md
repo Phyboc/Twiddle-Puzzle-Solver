@@ -1,105 +1,310 @@
 # Twiddle Puzzle Solver (Java)
 
-A Java implementation of the **Twiddle Puzzle** (an *N×N* board of numbered tiles) where the only allowed move is to **rotate a 2×2 sub-square**. The project includes:
+![Java](https://img.shields.io/badge/Language-Java-orange)
+![Algorithms](https://img.shields.io/badge/Algorithms-BFS%20%7C%20A*%20%7C%20DP-blue)
+![GUI](https://img.shields.io/badge/GUI-Java%20Swing-green)
+![Project](https://img.shields.io/badge/Type-DAA%20Project-purple)
 
-- A **CLI** game runner (human vs computer, or computer-only step-by-step)
-- A **Swing GUI** (`TwiddleGUI`)
-- Multiple solver/AI strategies:
-  - **BFS**
-  - **A\***
-  - **Divide & Conquer variants** (Spatial / Cycle / Depth)
-  - **MDF DP** (DP precomputed table / policy for solvable states; best for small N)
-  - **Backtracking** (iterative deepening with heuristic ordering)
+A **Java implementation of the Twiddle Puzzle**, an *N×N tile puzzle* where the only allowed move is **rotating a 2×2 sub-square**.
 
-## Rules / Move definition
+The project demonstrates and compares multiple **algorithmic approaches** for solving the puzzle and provides both:
 
-A move selects a 2×2 block and rotates it (clockwise) by one step.
+* 🖥 **Command Line Interface (CLI)**
+* 🎮 **Interactive Swing GUI**
 
-For an N×N board, there are `(N-1) * (N-1)` possible 2×2 positions, numbered in row-major order:
+This project was developed as part of the **Design and Analysis of Algorithms (DAA)** coursework.
 
-- `move = 1` => top-left 2×2
-- `move = 2` => top row, next 2×2
-- ...
-- `move = (N-1)*(N-1)` => bottom-right 2×2
+---
 
-The goal state is the board in increasing order:
+# Table of Contents
+
+* [Project Objective](#project-objective)
+* [Puzzle Rules](#puzzle-rules)
+* [Algorithms Implemented](#algorithms-implemented)
+* [Algorithm Comparison](#algorithm-comparison)
+* [Project Structure](#project-structure)
+* [Requirements](#requirements)
+* [How to Run (CLI)](#how-to-run-cli)
+* [How to Run (GUI)](#how-to-run-gui)
+* [GUI Preview](#gui-preview)
+* [Notes on MDF DP Solver](#notes-on-mdf-dp-solver)
+* [Contributing](#contributing)
+* [License](#license)
+
+---
+
+# Project Objective
+
+The goal of this project is to explore and compare **different algorithmic strategies** for solving the Twiddle Puzzle.
+
+It focuses on:
+
+* Understanding **search algorithms**
+* Applying **dynamic programming**
+* Exploring **divide and conquer strategies**
+* Comparing **algorithm efficiency and behavior**
+
+The project allows users to observe solver behavior through both **step-by-step CLI mode** and a **visual GUI interface**.
+
+---
+
+# Puzzle Rules
+
+The Twiddle Puzzle consists of an **N × N board of numbered tiles**.
+
+Example goal state for a 3×3 board:
 
 ```
-1  2  3
-4  5  6
-7  8  9
+1 2 3
+4 5 6
+7 8 9
 ```
 
-## Project structure
+### Allowed Move
 
-- `src/game/Main.java` — CLI entry point
-- `src/gui/TwiddleGUI.java` — Swing GUI
-- `src/game/Board.java` — board state + move execution
-- `src/game/ComputerPlayer*.java` — AI implementations
-- `DAA - Twiddle - Phase 2 Sivasubramani.pdf` — project/report document
+A move selects a **2×2 sub-square** and rotates it **clockwise**.
 
+Example:
 
-## Requirements
+```
+1 2
+4 5
+```
 
-- Java 8+ (recommended: Java 11+)
-- No external dependencies (uses standard Java + Swing)
+becomes
 
-## How to run (CLI)
+```
+4 1
+5 2
+```
 
-From the repo root:
+### Move Indexing
+
+For an **N × N board**, there are:
+
+```
+(N - 1) × (N - 1)
+```
+
+possible 2×2 rotations.
+
+They are numbered in **row-major order**:
+
+```
+move = 1  → top-left 2×2
+move = 2  → next 2×2 in top row
+...
+move = (N-1)*(N-1) → bottom-right 2×2
+```
+
+---
+
+# Algorithms Implemented
+
+The project includes several solver strategies:
+
+### Search Algorithms
+
+* **Breadth First Search (BFS)**
+* **A* Search**
+
+### Divide & Conquer Approaches
+
+* **Spatial Divide & Conquer**
+* **Cycle-based Divide & Conquer**
+* **Depth-based Divide & Conquer**
+
+### Dynamic Programming
+
+* **MDF DP Solver**
+  Precomputes reachable states from the goal.
+
+### Backtracking
+
+* **Iterative Deepening Backtracking**
+* Uses **heuristic move ordering**
+
+---
+
+# Algorithm Comparison
+
+| Algorithm    | Strategy             | Optimal | Performance                |
+| ------------ | -------------------- | ------- | -------------------------- |
+| BFS          | Breadth First Search | Yes     | Slow for large boards      |
+| A*           | Heuristic Search     | Yes     | Faster than BFS            |
+| Spatial D&C  | Divide & Conquer     | Depends | Moderate                   |
+| Cycle D&C    | Divide & Conquer     | Depends | Moderate                   |
+| Depth D&C    | Divide & Conquer     | Depends | Moderate                   |
+| MDF DP       | Dynamic Programming  | Yes     | Very fast for small boards |
+| Backtracking | Iterative Deepening  | Yes     | Slow but complete          |
+
+---
+
+# Project Structure
+
+```
+Twiddle_puzzle_solver
+│
+├── src
+│   ├── game
+│   │   ├── Main.java
+│   │   ├── Board.java
+│   │   ├── GameEngine.java
+│   │   ├── Player.java
+│   │   ├── ComputerPlayer*.java
+│   │
+│   └── gui
+│       └── TwiddleGUI.java
+│
+├── images
+│   └── gui.png
+│
+├── README.md
+└── report.pdf
+```
+
+### Key Files
+
+| File                   | Description                         |
+| ---------------------- | ----------------------------------- |
+| `Main.java`            | CLI entry point                     |
+| `Board.java`           | Board representation and move logic |
+| `ComputerPlayer*.java` | AI solver implementations           |
+| `TwiddleGUI.java`      | Swing-based graphical interface     |
+
+---
+
+# Requirements
+
+* **Java 8 or higher** (recommended: Java 11+)
+* No external dependencies
+* Uses **Java Standard Library + Swing**
+
+---
+
+# How to Run (CLI)
+
+From the project root:
+
+### Compile
 
 ```bash
-# compile
 javac -d out $(find src -name "*.java")
+```
 
-# run CLI
+### Run
+
+```bash
 java -cp out game.Main
 ```
 
+### CLI Menu
+
 You will be prompted for:
 
-1. Board size `N`
-2. Mode:
-   - `1` Human vs Computer
-   - `2` Computer Only (step-by-step)
-3. AI choice:
-   1. BFS
-   2. A*
-   3. Spatial D&C
-   4. Cycle D&C
-   5. Depth D&C
-   6. MDF DP
-   7. Backtracking
+1️⃣ Board size `N`
 
-### Computer-only mode
+2️⃣ Mode
 
-In computer-only mode, press **ENTER** to advance one solver move at a time (or type `q` to quit).
+```
+1 → Human vs Computer
+2 → Computer Only
+```
 
-## How to run (GUI)
+3️⃣ Solver Algorithm
 
-If your repo includes a GUI entry point (commonly a `main` method in `TwiddleGUI`, or another launcher), you can run it similarly after compiling:
+```
+1 BFS
+2 A*
+3 Spatial D&C
+4 Cycle D&C
+5 Depth D&C
+6 MDF DP
+7 Backtracking
+```
+
+---
+
+# Computer Only Mode
+
+In computer-only mode:
+
+* Press **ENTER** to execute the next solver move
+* Type **q** to quit
+
+This mode allows you to **observe algorithm behavior step-by-step**.
+
+---
+
+# How to Run (GUI)
+
+After compiling:
 
 ```bash
 javac -d out $(find src -name "*.java")
 java -cp out gui.TwiddleGUI
 ```
 
-If `TwiddleGUI` does not currently include a `public static void main(String[] args)` method, you can:
-- launch it from your IDE (Eclipse project files are present: `.project`, `.classpath`), or
-- add a small GUI launcher class.
+If the GUI does not include a `main()` method, you can:
 
-## Notes on MDF DP mode
+* Launch it through **Eclipse / IntelliJ**
+* Or create a small **GUI launcher class**
 
-The DP-based solver builds a table of reachable states from the goal (reverse search). This can be memory-heavy as N grows; the CLI prints the number of states and warns if the DP table was truncated.
+---
 
-For best results, use **small boards (recommended N ≤ 3)**.
+# GUI Preview
 
-## Contributing
+*(Add a screenshot of your GUI here)*
 
-PRs/issues welcome. If you add a new solver:
-- implement a `Player` / extend the existing player abstractions
-- wire it into `game.Main` (CLI) and optionally the GUI dropdown.
+```
+images/gui.png
+```
 
-## License
+Example:
 
-No license file is currently included. If you intend others to reuse this code, consider adding a `LICENSE` (e.g., MIT, Apache-2.0).
+```markdown
+![Twiddle GUI](images/gui.png)
+```
+
+---
+
+# Notes on MDF DP Solver
+
+The **MDF DP solver** builds a **precomputed table of reachable states** starting from the goal configuration.
+
+Advantages:
+
+* Very fast lookup during gameplay
+
+Limitations:
+
+* Memory usage increases rapidly with board size
+
+Recommended usage:
+
+```
+N ≤ 3
+```
+
+---
+
+# Contributing
+
+Contributions are welcome.
+
+If you add a new solver:
+
+1. Implement a new class extending the **Player abstraction**
+2. Integrate it into:
+
+   * `game.Main` (CLI)
+   * `TwiddleGUI` (optional)
+3. Ensure the solver works with the **Board API**
+
+---
+
+# License
+
+This project was developed as part of a **Design and Analysis of Algorithms (DAA) academic course**.
+
+You are free to study and modify the code for **educational purposes**.
