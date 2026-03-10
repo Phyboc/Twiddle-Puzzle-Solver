@@ -288,11 +288,8 @@ Contributions are welcome.
 If you add a new solver:
 
 1. Implement a new class extending the **Player abstraction**
-2. Integrate it into:
-
-   * `game.Main` (CLI)
-   * `TwiddleGUI` (optional)
-3. Ensure the solver works with the **Board API**
+2. Ensure the solver works with the **Board API**
+3. Fork this and work.
 
 ---
 
