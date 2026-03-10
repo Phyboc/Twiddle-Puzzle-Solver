@@ -75,6 +75,23 @@ public class Board {
         return grid;
     }
 
+    public void setGrid(int[][] newGrid) {
+        if (newGrid == null || newGrid.length != N || newGrid[0].length != N) {
+            throw new IllegalArgumentException("Grid size mismatch");
+        }
+
+        int[][] copy = new int[N][N];
+        for (int i = 0; i < N; i++) {
+            if (newGrid[i].length != N) {
+                throw new IllegalArgumentException("Grid size mismatch");
+            }
+            copy[i] = newGrid[i].clone();
+        }
+
+        this.grid = copy;
+        this.moves = 0;
+    }
+
     public int getMoves() {
         return moves;
     }
