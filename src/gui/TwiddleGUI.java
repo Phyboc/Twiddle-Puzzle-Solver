@@ -2,26 +2,39 @@ package gui;
 
 import game.*;
 import java.awt.*;
-import java.awt.geom.Point2D;
+import java.awt.event.*;
+import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.EmptyBorder;
+import javax.swing.border.*;
 
 public class TwiddleGUI extends JFrame {
 
-    private static final Color BG_TOP = new Color(239, 246, 255);
-    private static final Color BG_BOTTOM = new Color(219, 234, 254);
-    private static final Color TILE_BG = new Color(255, 255, 255);
-    private static final Color TILE_OK_BG = new Color(220, 252, 231);
-    private static final Color TILE_BORDER = new Color(148, 163, 184);
-    private static final Color ACCENT = new Color(37, 99, 235);
-    private static final Color DARK_BUTTON = new Color(51, 65, 85);
-    private static final Color TEXT_MAIN = new Color(17, 24, 39);
-    private static final Color TEXT_SUBTLE = new Color(71, 85, 105);
+    // ── Palette: deep navy + amber accent + soft off-white ──────────────────
+    private static final Color BG_DARK       = new Color(10,  14,  26);
+    private static final Color BG_MID        = new Color(16,  22,  42);
+    private static final Color PANEL_BG      = new Color(22,  30,  56);
+    private static final Color PANEL_BORDER  = new Color(45,  55,  90);
+    private static final Color ACCENT        = new Color(245, 168,  30);   // amber
+    private static final Color ACCENT_DIM    = new Color(180, 115,  10);
+    private static final Color SOLVED_BG     = new Color(34,  90,  55);
+    private static final Color SOLVED_TILE   = new Color(52, 211, 110);
+    private static final Color TILE_BG       = new Color(30,  40,  72);
+    private static final Color TILE_BORDER   = new Color(60,  75, 120);
+    private static final Color TEXT_BRIGHT   = new Color(240, 240, 255);
+    private static final Color TEXT_DIM      = new Color(130, 145, 185);
+    private static final Color BTN_HUMAN     = new Color(60,  80, 160);
+    private static final Color BTN_COMPUTER  = new Color(50,  65, 130);
 
-    private static final String[] AI_METHODS = new String[] {
+    private static final Font FONT_TITLE   = new Font("Georgia",     Font.BOLD,  22);
+    private static final Font FONT_CARD    = new Font("Georgia",     Font.BOLD,  13);
+    private static final Font FONT_TILE    = new Font("Courier New", Font.BOLD,  17);
+    private static final Font FONT_LABEL   = new Font("Courier New", Font.PLAIN, 11);
+    private static final Font FONT_BTN     = new Font("Georgia",     Font.BOLD,  11);
+    private static final Font FONT_STATUS  = new Font("Courier New", Font.PLAIN, 10);
+
+    private static final String[] AI_METHODS = {
         "A*", "BFS", "Spatial D&C", "Cycle D&C", "Depth D&C", "MDF DP", "Backtracking AI"
     };
 
@@ -30,75 +43,248 @@ public class TwiddleGUI extends JFrame {
 
     public TwiddleGUI() {
         setContentPane(new GradientPanel());
-        setTitle("Twiddle Puzzle Method Comparison");
+        setTitle("Twiddle Puzzle — Method Arena");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(8, 8));
+        setLayout(new BorderLayout(0, 0));
 
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-        int width = Math.min(1600, Math.max(1180, screen.width - 40));
-        int height = Math.min(880, Math.max(700, screen.height - 60));
-        setSize(width, height);
+        int w = Math.min(1640, Math.max(1200, screen.width  - 40));
+        int h = Math.min(920,  Math.max(720,  screen.height - 60));
+        setSize(w, h);
         setLocationRelativeTo(null);
 
-        setupHeader();
-        setupMethodsViewport();
+        ((JComponent) getContentPane()).setBorder(new EmptyBorder(10, 12, 12, 12));
+
+        buildHeader();
+        buildMethodsArea();
         rebuildBoards();
 
-        ((JComponent) getContentPane()).setBorder(new EmptyBorder(8, 10, 10, 10));
         setVisible(true);
     }
 
-    private void setupHeader() {
-        JPanel header = new JPanel(new BorderLayout(10, 6));
+    // ── Header ───────────────────────────────────────────────────────────────
+    private void buildHeader() {
+        JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setOpaque(false);
+        header.setBorder(new EmptyBorder(0, 0, 10, 0));
 
-        JPanel textPanel = new JPanel();
-        textPanel.setOpaque(false);
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        // Left: title block
+        JPanel titleBlock = new JPanel();
+        titleBlock.setOpaque(false);
+        titleBlock.setLayout(new BoxLayout(titleBlock, BoxLayout.Y_AXIS));
 
-        JLabel titleLabel = new JLabel("Twiddle Puzzle");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        titleLabel.setForeground(TEXT_MAIN);
-        textPanel.add(titleLabel);
+        JLabel title = new JLabel("TWIDDLE PUZZLE");
+        title.setFont(FONT_TITLE);
+        title.setForeground(ACCENT);
+        titleBlock.add(title);
 
-        JLabel subtitleLabel = new JLabel("7 AI solvers vs 1 human board - all start from the same state");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitleLabel.setForeground(TEXT_SUBTLE);
-        textPanel.add(subtitleLabel);
+        JLabel sub = new JLabel("8 solvers · 1 board · may the best algorithm win");
+        sub.setFont(FONT_LABEL);
+        sub.setForeground(TEXT_DIM);
+        titleBlock.add(sub);
 
+        // Right: controls
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         controls.setOpaque(false);
 
-        sizeBox = new JComboBox<>(new String[] {"3 x 3", "4 x 4"});
-        styleComboBox(sizeBox);
+        sizeBox = new JComboBox<>(new String[]{"3 × 3", "4 × 4"});
+        styleCombo(sizeBox);
         sizeBox.addActionListener(e -> rebuildBoards());
 
-        JButton resetButton = createActionButton("New Shared Board", ACCENT, Color.WHITE);
-        resetButton.addActionListener(e -> rebuildBoards());
+        JButton rulesBtn  = makeBtn("Rules",          new Color(80, 60, 20), ACCENT);
+        JButton resetBtn  = makeBtn("New Board",       BTN_COMPUTER,          TEXT_BRIGHT);
+
+        rulesBtn.addActionListener(e -> showRulesDialog());
+        resetBtn.addActionListener(e -> rebuildBoards());
 
         controls.add(sizeBox);
-        controls.add(resetButton);
+        controls.add(rulesBtn);
+        controls.add(resetBtn);
 
-        header.add(textPanel, BorderLayout.WEST);
-        header.add(controls, BorderLayout.EAST);
+        header.add(titleBlock, BorderLayout.WEST);
+        header.add(controls,   BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
     }
 
-    private void setupMethodsViewport() {
-        methodsContainer = new JPanel(new GridLayout(2, 4, 8, 8));
+    // ── Rules dialog ─────────────────────────────────────────────────────────
+    private void showRulesDialog() {
+        JDialog dlg = new JDialog(this, "Twiddle — Rules & Algorithms", true);
+        dlg.setSize(640, 560);
+        dlg.setLocationRelativeTo(this);
+        dlg.setResizable(false);
+
+        // Content pane with dark background
+        JPanel root = new JPanel(new BorderLayout(0, 0));
+        root.setBackground(BG_MID);
+        root.setBorder(new EmptyBorder(0, 0, 0, 0));
+        dlg.setContentPane(root);
+
+        // Header stripe
+        JPanel stripe = new JPanel(new BorderLayout());
+        stripe.setBackground(PANEL_BG);
+        stripe.setBorder(new EmptyBorder(14, 20, 14, 20));
+        JLabel heading = new JLabel("How to Play & Algorithm Guide");
+        heading.setFont(new Font("Georgia", Font.BOLD, 17));
+        heading.setForeground(ACCENT);
+        stripe.add(heading, BorderLayout.WEST);
+        root.add(stripe, BorderLayout.NORTH);
+
+        // Scrollable text body
+        JPanel body = new JPanel();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        body.setBackground(BG_MID);
+        body.setBorder(new EmptyBorder(16, 22, 16, 22));
+
+        String[][] sections = {
+            {
+                "🎯  Objective",
+                "Arrange the numbered tiles into ascending order (1, 2, 3 … n²) reading " +
+                "left-to-right, top-to-bottom. The puzzle is solved when every tile sits in " +
+                "its correct position."
+            },
+            {
+                "🔄  The Twiddle Move",
+                "A 'twiddle' rotates a 2×2 sub-grid of the board by 90° counter-clockwise. " +
+                "On an n×n board there are (n−1)² such sub-grids, each numbered 1 … (n−1)². " +
+                "Move k corresponds to the sub-grid whose top-left corner is at " +
+                "row ⌊(k−1)/(n−1)⌋, column (k−1) mod (n−1)."
+            },
+            {
+                "🧑  Human Mode",
+                "Numbered buttons appear below your board. Press a button to apply that " +
+                "twiddle. Tiles that are already in their correct position are highlighted " +
+                "in green. Try to beat the AIs!"
+            },
+            {
+                "🤖  A* Search",
+                "An informed best-first search guided by an admissible heuristic (misplaced " +
+                "tiles or Manhattan distance). Guaranteed to find the optimal (fewest-move) " +
+                "solution. Can be slow on large boards."
+            },
+            {
+                "🔍  BFS",
+                "Breadth-first search explores all states level by level. Also optimal, " +
+                "but consumes more memory than A* because no heuristic guides the frontier."
+            },
+            {
+                "✂️  Spatial D&C",
+                "Divide & Conquer that splits the board into spatial regions and solves " +
+                "each independently. Fast, but may not yield the minimum move count."
+            },
+            {
+                "🔁  Cycle D&C",
+                "Divide & Conquer based on permutation cycles. Decomposes the goal " +
+                "permutation into independent cycles and solves each cycle in sequence."
+            },
+            {
+                "📉  Depth D&C",
+                "Divide & Conquer that recurses by board depth (rows/columns). Tiles are " +
+                "placed into their final rows first, then columns."
+            },
+            {
+                "📊  MDP DP",
+                "Markov-Decision Process inspired Dynamic Programming. Pre-computes a dp hashmap " + 
+                "containing the grid with its cost to reach goal state and a look-up table of " +
+                "optimal move sequences for reachable board states. Very fast once built, but " +
+                "table construction can be time-consuming for 4×4 boards. (current max number of "+
+                "states: 2,000,000)"
+            },
+            {
+                "🔙  Backtracking AI",
+                "Systematic depth-limited backtracking with pruning. Explores the move " +
+                "tree and backtracks when a dead-end is detected. A good balance between " +
+                "speed and solution quality."
+            },
+            {
+                "📌  Tips",
+                "• Click 'New Board' to generate a fresh scrambled board shared by all solvers.\n" +
+                "• Switch between 3×3 and 4×4 with the size selector — 4×4 is significantly harder.\n" +
+                "• Green tile = correctly placed. Count your moves against each AI's total!"
+            }
+        };
+
+        for (String[] sec : sections) {
+            body.add(makeSectionLabel(sec[0]));
+            body.add(Box.createVerticalStrut(4));
+            body.add(makeBodyText(sec[1]));
+            body.add(Box.createVerticalStrut(14));
+        }
+
+        JScrollPane scroll = new JScrollPane(body);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(BG_MID);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setUnitIncrement(12);
+        styleScrollBar(scroll);
+        root.add(scroll, BorderLayout.CENTER);
+
+        // Footer close button
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 8));
+        footer.setBackground(PANEL_BG);
+        JButton close = makeBtn("Close", ACCENT_DIM, TEXT_BRIGHT);
+        close.addActionListener(e -> dlg.dispose());
+        footer.add(close);
+        root.add(footer, BorderLayout.SOUTH);
+
+        dlg.setVisible(true);
+    }
+
+    private JLabel makeSectionLabel(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(new Font("Georgia", Font.BOLD, 13));
+        l.setForeground(ACCENT);
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return l;
+    }
+
+    private JTextArea makeBodyText(String text) {
+        JTextArea ta = new JTextArea(text);
+        ta.setFont(new Font("Courier New", Font.PLAIN, 12));
+        ta.setForeground(TEXT_BRIGHT);
+        ta.setBackground(BG_MID);
+        ta.setLineWrap(true);
+        ta.setWrapStyleWord(true);
+        ta.setEditable(false);
+        ta.setFocusable(false);
+        ta.setOpaque(false);
+        ta.setAlignmentX(Component.LEFT_ALIGNMENT);
+        ta.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        return ta;
+    }
+
+    private void styleScrollBar(JScrollPane sp) {
+        JScrollBar vsb = sp.getVerticalScrollBar();
+        vsb.setBackground(BG_MID);
+        vsb.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+            @Override protected void configureScrollBarColors() {
+                thumbColor      = new Color(70, 85, 140);
+                trackColor      = BG_MID;
+            }
+            @Override protected JButton createDecreaseButton(int o) { return zeroBtn(); }
+            @Override protected JButton createIncreaseButton(int o) { return zeroBtn(); }
+            private JButton zeroBtn() {
+                JButton b = new JButton();
+                b.setPreferredSize(new Dimension(0, 0));
+                return b;
+            }
+        });
+    }
+
+    // ── Methods viewport ─────────────────────────────────────────────────────
+    private void buildMethodsArea() {
+        methodsContainer = new JPanel(new GridLayout(2, 4, 10, 10));
         methodsContainer.setOpaque(false);
         add(methodsContainer, BorderLayout.CENTER);
     }
 
     private void rebuildBoards() {
         int n = sizeBox.getSelectedIndex() == 0 ? 3 : 4;
-        Board seedBoard = new Board(n);
-        int[][] initial = copyGrid(seedBoard.getGrid());
+        Board seed = new Board(n);
+        int[][] initial = copyGrid(seed.getGrid());
 
         methodsContainer.removeAll();
-
-        for (String method : AI_METHODS) {
-            methodsContainer.add(new MethodPanel(method, true, initial).container);
+        for (String m : AI_METHODS) {
+            methodsContainer.add(new MethodPanel(m, true,  initial).container);
         }
         methodsContainer.add(new MethodPanel("Human", false, initial).container);
 
@@ -106,113 +292,107 @@ public class TwiddleGUI extends JFrame {
         methodsContainer.repaint();
     }
 
-    private int[][] copyGrid(int[][] src) {
-        int[][] c = new int[src.length][src[0].length];
-        for (int i = 0; i < src.length; i++) {
-            c[i] = src[i].clone();
-        }
-        return c;
-    }
-
+    // ── MethodPanel ──────────────────────────────────────────────────────────
     private class MethodPanel {
-        private final String method;
-        private final boolean computerControlled;
+        final JPanel container;
         private final Board board;
-        private final JPanel container;
         private final JLabel[][] cells;
-        private final JLabel moveLabel;
-        private final JLabel statusLabel;
+        private final JLabel moveLabel, statusLabel;
         private final JButton computerButton;
-        private final List<JButton> humanMoveButtons = new ArrayList<>();
-
+        private final List<JButton> humanBtns = new ArrayList<>();
+        private final String method;
+        private final boolean isComputer;
         private DPFlow.Initialization dpInit;
 
-        MethodPanel(String method, boolean computerControlled, int[][] initialGrid) {
-            this.method = method;
-            this.computerControlled = computerControlled;
+        MethodPanel(String method, boolean isComputer, int[][] initial) {
+            this.method     = method;
+            this.isComputer = isComputer;
+            this.board      = new Board(initial.length);
+            this.board.setGrid(copyGrid(initial));
 
-            this.board = new Board(initialGrid.length);
-            this.board.setGrid(copyGrid(initialGrid));
+            // Card container
+            container = new RoundedPanel(14, PANEL_BG, PANEL_BORDER);
+            container.setLayout(new BorderLayout(0, 6));
+            container.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-            container = new JPanel(new BorderLayout(8, 8));
-            container.setOpaque(false);
-                container.setPreferredSize(new Dimension(250, 280));
-            container.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(191, 219, 254), 2, true),
-                    new EmptyBorder(8, 8, 8, 8)
-            ));
-
-            JPanel top = new JPanel(new BorderLayout(4, 4));
+            // ── Top bar ──
+            JPanel top = new JPanel(new BorderLayout(4, 0));
             top.setOpaque(false);
 
+            // Colored dot + name
+            JPanel nameRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+            nameRow.setOpaque(false);
+            JLabel dot = new JLabel("●");
+            dot.setForeground(isComputer ? new Color(100, 160, 255) : ACCENT);
+            dot.setFont(new Font("Courier New", Font.PLAIN, 10));
             JLabel nameLabel = new JLabel(method);
-            nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            nameLabel.setForeground(TEXT_MAIN);
-            top.add(nameLabel, BorderLayout.NORTH);
+            nameLabel.setFont(FONT_CARD);
+            nameLabel.setForeground(TEXT_BRIGHT);
+            nameRow.add(dot);
+            nameRow.add(nameLabel);
 
-            moveLabel = new JLabel("Moves: 0");
-            moveLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            moveLabel.setForeground(TEXT_MAIN);
-            top.add(moveLabel, BorderLayout.WEST);
+            moveLabel = new JLabel("0 moves");
+            moveLabel.setFont(FONT_STATUS);
+            moveLabel.setForeground(ACCENT);
 
+            top.add(nameRow,   BorderLayout.WEST);
+            top.add(moveLabel, BorderLayout.EAST);
             container.add(top, BorderLayout.NORTH);
 
+            // ── Grid ──
             int size = board.size();
             cells = new JLabel[size][size];
-            JPanel gridPanel = new JPanel(new GridLayout(size, size, 4, 4));
-            gridPanel.setBackground(new Color(248, 250, 252));
-            gridPanel.setBorder(new EmptyBorder(4, 4, 4, 4));
-            gridPanel.setPreferredSize(new Dimension(160, 160));
-
-            Font tileFont = new Font("Segoe UI", Font.BOLD, 16);
+            JPanel grid = new JPanel(new GridLayout(size, size, 3, 3));
+            grid.setBackground(BG_DARK);
+            grid.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(PANEL_BORDER, 1, true),
+                new EmptyBorder(3, 3, 3, 3)
+            ));
             for (int i = 0; i < size; i++) {
                 for (int j = 0; j < size; j++) {
-                    JLabel label = new JLabel("", SwingConstants.CENTER);
-                    label.setFont(tileFont);
-                    label.setOpaque(true);
-                    label.setBackground(TILE_BG);
-                    label.setForeground(TEXT_MAIN);
-                    label.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(TILE_BORDER, 1, true),
-                            new EmptyBorder(2, 2, 2, 2)
-                    ));
-                    cells[i][j] = label;
-                    gridPanel.add(label);
+                    JLabel lbl = new JLabel("", SwingConstants.CENTER);
+                    lbl.setFont(FONT_TILE);
+                    lbl.setOpaque(true);
+                    lbl.setBackground(TILE_BG);
+                    lbl.setForeground(TEXT_BRIGHT);
+                    lbl.setBorder(BorderFactory.createLineBorder(TILE_BORDER, 1, true));
+                    cells[i][j] = lbl;
+                    grid.add(lbl);
                 }
             }
+            container.add(grid, BorderLayout.CENTER);
 
-            container.add(gridPanel, BorderLayout.CENTER);
-
+            // ── Bottom ──
             JPanel bottom = new JPanel();
             bottom.setOpaque(false);
             bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
 
-            statusLabel = new JLabel("Status: Ready");
-            statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            statusLabel.setForeground(TEXT_SUBTLE);
-            statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            statusLabel = new JLabel("Ready");
+            statusLabel.setFont(FONT_STATUS);
+            statusLabel.setForeground(TEXT_DIM);
+            statusLabel.setAlignmentX(LEFT_ALIGNMENT);
             bottom.add(statusLabel);
-            bottom.add(Box.createVerticalStrut(6));
+            bottom.add(Box.createVerticalStrut(5));
 
-            if (computerControlled) {
-                computerButton = createActionButton("Computer Move", DARK_BUTTON, Color.WHITE);
-                computerButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+            if (isComputer) {
+                computerButton = makeBtn("▶  Solve Next", BTN_COMPUTER, TEXT_BRIGHT);
+                computerButton.setAlignmentX(LEFT_ALIGNMENT);
                 computerButton.addActionListener(e -> runComputerMove());
                 bottom.add(computerButton);
             } else {
                 computerButton = null;
-                JPanel moveButtons = new JPanel(new GridLayout(board.size() - 1, board.size() - 1, 4, 4));
-                moveButtons.setOpaque(false);
-                moveButtons.setAlignmentX(Component.LEFT_ALIGNMENT);
-
+                JPanel moveGrid = new JPanel(new GridLayout(board.size() - 1, board.size() - 1, 3, 3));
+                moveGrid.setOpaque(false);
+                moveGrid.setAlignmentX(LEFT_ALIGNMENT);
                 for (int i = 1; i <= board.totalMoves(); i++) {
-                    final int move = i;
-                    JButton button = createActionButton(String.valueOf(i), DARK_BUTTON, Color.WHITE);
-                    button.addActionListener(e -> runHumanMove(move));
-                    humanMoveButtons.add(button);
-                    moveButtons.add(button);
+                    final int mv = i;
+                    JButton b = makeBtn(String.valueOf(i), BTN_HUMAN, TEXT_BRIGHT);
+                    b.setFont(new Font("Courier New", Font.BOLD, 11));
+                    b.addActionListener(e -> runHumanMove(mv));
+                    humanBtns.add(b);
+                    moveGrid.add(b);
                 }
-                bottom.add(moveButtons);
+                bottom.add(moveGrid);
             }
 
             container.add(bottom, BorderLayout.SOUTH);
@@ -220,236 +400,203 @@ public class TwiddleGUI extends JFrame {
         }
 
         private void runHumanMove(int move) {
-            if (!computerControlled && !board.isSolved()) {
-                board.executeMove(move);
-                refreshBoard();
-                updateMoves();
-                statusLabel.setText("Status: Human chose move " + move);
-                checkSolved();
-            }
+            if (board.isSolved()) return;
+            board.executeMove(move);
+            refreshBoard();
+            moveLabel.setText(board.getMoves() + " moves");
+            statusLabel.setText("Move " + move + " applied");
+            checkSolved();
         }
 
         private void runComputerMove() {
-            if (!computerControlled || board.isSolved()) {
-                return;
-            }
+            if (board.isSolved()) return;
+            if ("MDF DP".equals(method)) { runDPMove(); return; }
 
-            if ("MDF DP".equals(method)) {
-                runDPMove();
-                return;
-            }
+            Player p = buildPlayer();
+            if (p == null) { statusLabel.setText("Unknown method"); return; }
 
-            Player computer = buildComputerPlayer();
-            if (computer == null) {
-                statusLabel.setText("Status: Unknown method");
-                return;
-            }
-
-            statusLabel.setText("Status: " + method + " is thinking...");
+            statusLabel.setText("Thinking…");
             computerButton.setEnabled(false);
 
             new SwingWorker<Integer, Void>() {
-                @Override
-                protected Integer doInBackground() {
-                    return computer.getMove();
-                }
-
-                @Override
-                protected void done() {
+                @Override protected Integer doInBackground() { return p.getMove(); }
+                @Override protected void done() {
                     try {
-                        int move = get();
-                        board.executeMove(move);
+                        int mv = get();
+                        board.executeMove(mv);
                         refreshBoard();
-                        updateMoves();
-                        statusLabel.setText("Status: " + method + " chose move " + move);
+                        moveLabel.setText(board.getMoves() + " moves");
+                        statusLabel.setText("Chose move " + mv);
                         checkSolved();
-                    } catch (Exception e) {
-                        statusLabel.setText("Status: Calculation failed");
+                    } catch (Exception ex) {
+                        statusLabel.setText("Calculation failed");
                     } finally {
-                        if (!board.isSolved()) {
-                            computerButton.setEnabled(true);
-                        }
+                        if (!board.isSolved()) computerButton.setEnabled(true);
                     }
                 }
             }.execute();
         }
 
-        private Player buildComputerPlayer() {
+        private Player buildPlayer() {
             switch (method) {
-                case "A*": {
-                    ComputerPlayer p = new ComputerPlayer(board);
-                    p.setAlgorithm(false);
-                    return p;
-                }
-                case "BFS": {
-                    ComputerPlayer p = new ComputerPlayer(board);
-                    p.setAlgorithm(true);
-                    return p;
-                }
-                case "Spatial D&C": {
-                    ComputerPlayer2 p = new ComputerPlayer2(board);
-                    p.setMode(1);
-                    return p;
-                }
-                case "Cycle D&C": {
-                    ComputerPlayer2 p = new ComputerPlayer2(board);
-                    p.setMode(2);
-                    return p;
-                }
-                case "Depth D&C": {
-                    ComputerPlayer2 p = new ComputerPlayer2(board);
-                    p.setMode(3);
-                    return p;
-                }
-                case "Backtracking AI":
-                    return new BacktrackingPlayer(board);
-                default:
-                    return null;
+                case "A*":          { ComputerPlayer p = new ComputerPlayer(board); p.setAlgorithm(false); return p; }
+                case "BFS":         { ComputerPlayer p = new ComputerPlayer(board); p.setAlgorithm(true);  return p; }
+                case "Spatial D&C": { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(1); return p; }
+                case "Cycle D&C":   { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(2); return p; }
+                case "Depth D&C":   { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(3); return p; }
+                case "Backtracking AI": return new BacktrackingPlayer(board);
+                default: return null;
             }
         }
 
         private void runDPMove() {
-            if (!ensureDPReady()) {
-                return;
-            }
-
-            if (!dpInit.session().isSolvable(board)) {
-                statusLabel.setText("Status: Board not solvable by current DP table");
-                return;
-            }
-
+            if (!ensureDP()) return;
+            if (!dpInit.session().isSolvable(board)) { statusLabel.setText("Not solvable by DP"); return; }
             DPFlow.StepResult step = dpInit.session().playNextMove(board);
             refreshBoard();
-            updateMoves();
-
-            Integer remaining = step.estimatedRemaining();
-            if (remaining != null) {
-                statusLabel.setText("Status: MDF DP move " + step.move() + " | Remaining: " + remaining);
-            } else {
-                statusLabel.setText("Status: MDF DP move " + step.move());
-            }
+            moveLabel.setText(board.getMoves() + " moves");
+            Integer rem = step.estimatedRemaining();
+            statusLabel.setText("Move " + step.move() + (rem != null ? " | ~" + rem + " left" : ""));
             checkSolved();
         }
 
-        private boolean ensureDPReady() {
-            if (dpInit != null) {
-                return true;
-            }
-
+        private boolean ensureDP() {
+            if (dpInit != null) return true;
             if (board.size() > 3) {
-                int answer = JOptionPane.showConfirmDialog(
-                        TwiddleGUI.this,
-                        "MDF DP can be heavy for 4x4 boards and may take time. Continue?",
-                        "Build DP Table",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE
-                );
-                if (answer != JOptionPane.YES_OPTION) {
-                    statusLabel.setText("Status: MDF DP build cancelled");
-                    return false;
-                }
+                int ans = JOptionPane.showConfirmDialog(TwiddleGUI.this,
+                    "MDF DP table for 4×4 may take time. Continue?",
+                    "Build DP Table", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                if (ans != JOptionPane.YES_OPTION) { statusLabel.setText("Cancelled"); return false; }
             }
-
             Cursor prev = getCursor();
             try {
                 setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                statusLabel.setText("Status: Building DP table...");
+                statusLabel.setText("Building DP table…");
                 dpInit = DPFlow.initialize(board);
-            } finally {
-                setCursor(prev);
-            }
-
-            if (dpInit.reshuffles() > 0) {
-                refreshBoard();
-                updateMoves();
-                statusLabel.setText("Status: Reshuffled to DP-solvable state");
-            }
-
-            if (!dpInit.session().isSolvable(board)) {
-                statusLabel.setText("Status: Could not find DP-solvable board");
-                return false;
-            }
-
+            } finally { setCursor(prev); }
+            if (dpInit.reshuffles() > 0) { refreshBoard(); moveLabel.setText(board.getMoves() + " moves"); statusLabel.setText("Reshuffled"); }
+            if (!dpInit.session().isSolvable(board)) { statusLabel.setText("No DP-solvable state found"); return false; }
             return true;
         }
 
         private void refreshBoard() {
             int[][] g = board.getGrid();
-            for (int i = 0; i < g.length; i++) {
-                for (int j = 0; j < g[0].length; j++) {
-                    int value = g[i][j];
-                    cells[i][j].setText(String.valueOf(value));
-                    cells[i][j].setBackground(isCorrectPosition(i, j, value, g.length) ? TILE_OK_BG : TILE_BG);
+            int n = g.length;
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    int v = g[i][j];
+                    boolean ok = (v == i * n + j + 1);
+                    cells[i][j].setText(String.valueOf(v));
+                    cells[i][j].setBackground(ok ? SOLVED_BG   : TILE_BG);
+                    cells[i][j].setForeground(ok ? SOLVED_TILE : TEXT_BRIGHT);
                 }
             }
         }
 
-        private void updateMoves() {
-            moveLabel.setText("Moves: " + board.getMoves());
-        }
-
         private void checkSolved() {
-            if (!board.isSolved()) {
-                return;
-            }
-
-            statusLabel.setText("Status: Solved in " + board.getMoves() + " moves");
-            if (computerButton != null) {
-                computerButton.setEnabled(false);
-            }
-            for (JButton b : humanMoveButtons) {
-                b.setEnabled(false);
-            }
+            if (!board.isSolved()) return;
+            statusLabel.setForeground(SOLVED_TILE);
+            statusLabel.setText("✓ Solved in " + board.getMoves() + " moves");
+            if (computerButton != null) computerButton.setEnabled(false);
+            humanBtns.forEach(b -> b.setEnabled(false));
         }
     }
 
-    private boolean isCorrectPosition(int row, int col, int value, int size) {
-        return value == row * size + col + 1;
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    private int[][] copyGrid(int[][] src) {
+        int[][] c = new int[src.length][src[0].length];
+        for (int i = 0; i < src.length; i++) c[i] = src[i].clone();
+        return c;
     }
 
-    private void styleComboBox(JComboBox<String> comboBox) {
-        comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        comboBox.setBackground(Color.WHITE);
-        comboBox.setForeground(TEXT_MAIN);
-        comboBox.setFocusable(false);
-        Border border = BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(148, 163, 184), 1, true),
-            new EmptyBorder(3, 6, 3, 6)
-        );
-        comboBox.setBorder(border);
+    private JButton makeBtn(String text, Color bg, Color fg) {
+        JButton b = new JButton(text);
+        b.setFont(FONT_BTN);
+        b.setBackground(bg);
+        b.setForeground(fg);
+        b.setFocusable(false);
+        b.setBorderPainted(false);
+        b.setOpaque(true);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        b.setBorder(new EmptyBorder(5, 12, 5, 12));
+        // hover effect
+        b.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) {
+                if (b.isEnabled()) b.setBackground(bg.brighter());
+            }
+            @Override public void mouseExited(MouseEvent e)  {
+                b.setBackground(bg);
+            }
+        });
+        return b;
     }
 
-    private JButton createActionButton(String text, Color bg, Color fg) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBackground(bg);
-        button.setForeground(fg);
-        button.setFocusable(false);
-        button.setBorderPainted(false);
-        button.setOpaque(true);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return button;
+    private void styleCombo(JComboBox<String> cb) {
+        cb.setFont(FONT_BTN);
+        cb.setBackground(PANEL_BG);
+        cb.setForeground(TEXT_BRIGHT);
+        cb.setFocusable(false);
+        cb.setBorder(BorderFactory.createLineBorder(PANEL_BORDER, 1, true));
     }
 
+    // ── Custom components ────────────────────────────────────────────────────
+    /** Dark gradient background */
     private static class GradientPanel extends JPanel {
-        @Override
-        protected void paintComponent(Graphics g) {
+        @Override protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            LinearGradientPaint paint = new LinearGradientPaint(
-                    new Point2D.Float(0, 0),
-                    new Point2D.Float(0, getHeight()),
-                    new float[] {0f, 1f},
-                    new Color[] {BG_TOP, BG_BOTTOM}
-            );
-            g2.setPaint(paint);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            GradientPaint gp = new GradientPaint(0, 0, new Color(8, 12, 24), 0, getHeight(), new Color(18, 24, 48));
+            g2.setPaint(gp);
             g2.fillRect(0, 0, getWidth(), getHeight());
             g2.dispose();
         }
     }
 
+    /** Panel with rounded corners, filled background, and a subtle border */
+    private static class RoundedPanel extends JPanel {
+        private final int arc;
+        private final Color bg, border;
+        RoundedPanel(int arc, Color bg, Color border) {
+            this.arc = arc; this.bg = bg; this.border = border;
+            setOpaque(false);
+        }
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(bg);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+            g2.setColor(border);
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
     public static void main(String[] args) {
+        // Attempt a dark look-and-feel if available, fall back gracefully
+        try {
+            for (UIManager.LookAndFeelInfo laf : UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(laf.getName())) {
+                    UIManager.setLookAndFeel(laf.getClassName());
+                    // Override Nimbus defaults for dark theme
+                    UIManager.put("control",         BG_MID);
+                    UIManager.put("info",            BG_MID);
+                    UIManager.put("nimbusBase",      new Color(18, 24, 48));
+                    UIManager.put("nimbusBlueGrey",  new Color(30, 40, 72));
+                    UIManager.put("nimbusFocus",      new Color(245, 168, 30));
+                    UIManager.put("text",            new Color(240, 240, 255));
+                    UIManager.put("OptionPane.background",    BG_MID);
+                    UIManager.put("Panel.background",         BG_MID);
+                    break;
+                }
+            }
+        } catch (Exception ignored) {}
+
         SwingUtilities.invokeLater(TwiddleGUI::new);
     }
+
+    // expose BG_MID as package-level for anonymous classes above
+    private static final Color BG_MID_REF = new Color(16, 22, 42);
 }
