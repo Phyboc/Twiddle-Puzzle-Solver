@@ -256,15 +256,8 @@ If the GUI does not include a `main()` method, you can:
 
 *(Add a screenshot of your GUI here)*
 
-```
-images/gui.png
-```
+![Twiddle GUI](img/gui.png)
 
-Example:
-
-```markdown
-![Twiddle GUI](images/gui.png)
-```
 
 ---
 
