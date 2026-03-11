@@ -84,6 +84,10 @@ public class Main {
                 computer = new BacktrackingPlayer(board);
                 break;
 
+            case 8:
+                computer = new TopDownDPPlayer(board);
+                break;
+
             default:
                 System.out.println("Invalid choice.");
                 return;
