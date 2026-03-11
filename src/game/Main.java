@@ -1,15 +1,15 @@
 package game;
-import java.util.*;
+
+import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-
         Scanner sc = new Scanner(System.in);
 
         System.out.print("Enter board size N: ");
-        int N = sc.nextInt();
+        int n = sc.nextInt();
 
-        Board board = new Board(N);
+        Board board = new Board(n);
 
         System.out.println("Choose mode:");
         System.out.println("1. Human vs Computer");
@@ -24,13 +24,14 @@ public class Main {
         System.out.println("4. Cycle D&C");
         System.out.println("5. Depth D&C");
         System.out.println("6. MDF DP");
+        System.out.println("7. Backtracking AI");
+        System.out.println("8. Top-Down DP");
 
         int choice = sc.nextInt();
 
         Player computer;
 
         switch (choice) {
-
             case 1:
                 ComputerPlayer bfs = new ComputerPlayer(board);
                 bfs.setAlgorithm(true);
@@ -78,13 +79,20 @@ public class Main {
 
                 runDPGame(board, init.session(), sc);
                 return;
-            case 7: 
-				computer = new BacktrackingPlayer(board);
-				break;   
+
+            case 7:
+                computer = new BacktrackingPlayer(board);
+                break;
+
+            case 8:
+                computer = new TopDownDPPlayer(board);
+                break;
+
             default:
                 System.out.println("Invalid choice.");
                 return;
         }
+
         if (mode == 1) {
             Player human = new HumanPlayer(board);
             new GameEngine(board, human, computer).startGame();
@@ -96,31 +104,39 @@ public class Main {
     private static void runComputerOnly(Board board, Player computer, Scanner sc) {
         System.out.println("\nInitial Board:");
         board.print();
+
         sc.nextLine();
         while (!board.isSolved()) {
             System.out.print("\nPress ENTER for computer move (or q to quit): ");
             String input = sc.nextLine();
-            if (input.equalsIgnoreCase("q")) break;
+            if (input.equalsIgnoreCase("q")) {
+                break;
+            }
+
             int move = computer.getMove();
             System.out.println("Computer chooses move: " + move);
             board.executeMove(move);
             board.print();
         }
-        if (board.isSolved())
-            System.out.println("🎉 Puzzle Solved!");
-        else
+
+        if (board.isSolved()) {
+            System.out.println("Puzzle solved!");
+        } else {
             System.out.println("Stopped by user.");
+        }
     }
-    
+
     private static void runDPGame(Board board, DPFlow.Session session, Scanner sc) {
         System.out.println("\nInitial Board:");
         board.print();
+
         sc.nextLine();
         while (!board.isSolved()) {
             System.out.print("\nPress ENTER for next move (or q to quit): ");
             String input = sc.nextLine();
-            if (input.equalsIgnoreCase("q"))
+            if (input.equalsIgnoreCase("q")) {
                 break;
+            }
 
             if (!session.isSolvable(board)) {
                 System.out.println("This board configuration cannot reach the goal.");
@@ -129,11 +145,14 @@ public class Main {
 
             DPFlow.StepResult step = session.playNextMove(board);
             System.out.println("Computer chooses move: " + step.move());
-            if (step.estimatedRemaining() != null)
+            if (step.estimatedRemaining() != null) {
                 System.out.println("Estimated remaining moves (DP): " + step.estimatedRemaining());
+            }
             board.print();
         }
-        if (board.isSolved())
+
+        if (board.isSolved()) {
             System.out.println("Puzzle solved!");
+        }
     }
 }
