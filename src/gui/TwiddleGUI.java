@@ -3,7 +3,6 @@ package gui;
 import game.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
@@ -400,6 +399,10 @@ public class TwiddleGUI extends JFrame {
 
         private void runHumanMove(int move) {
             if (board.isSolved()) return;
+            if (!isValidMove(move)) {
+                statusLabel.setText("Invalid move: " + move);
+                return;
+            }
             board.executeMove(move);
             refreshBoard();
             moveLabel.setText(board.getMoves() + " moves");
@@ -411,7 +414,16 @@ public class TwiddleGUI extends JFrame {
             if (board.isSolved()) return;
             if ("MDF DP".equals(method)) { runDPMove(); return; }
 
-            Player p = buildPlayer();
+            final Player p;
+            try {
+                p = buildPlayer();
+            } catch (RuntimeException ex) {
+                statusLabel.setText("Solver setup failed");
+                return;
+            } catch (Error err) {
+                statusLabel.setText("Solver unavailable");
+                return;
+            }
             if (p == null) { statusLabel.setText("Unknown method"); return; }
 
             statusLabel.setText("Thinking…");
@@ -422,6 +434,10 @@ public class TwiddleGUI extends JFrame {
                 @Override protected void done() {
                     try {
                         int mv = get();
+                        if (!isValidMove(mv)) {
+                            statusLabel.setText("Solver returned invalid move: " + mv);
+                            return;
+                        }
                         board.executeMove(mv);
                         refreshBoard();
                         moveLabel.setText(board.getMoves() + " moves");
@@ -434,6 +450,10 @@ public class TwiddleGUI extends JFrame {
                     }
                 }
             }.execute();
+        }
+
+        private boolean isValidMove(int move) {
+            return move >= 1 && move <= board.totalMoves();
         }
 
         private Player buildPlayer() {
