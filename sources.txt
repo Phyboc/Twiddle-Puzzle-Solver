@@ -8,4 +8,5 @@
 "D:/Studies/projects/Semester Projects/Semester 4/DAA/Twiddle_puzzle_solver/src/game/HumanPlayer.java"
 "D:/Studies/projects/Semester Projects/Semester 4/DAA/Twiddle_puzzle_solver/src/game/Main.java"
 "D:/Studies/projects/Semester Projects/Semester 4/DAA/Twiddle_puzzle_solver/src/game/Player.java"
+"D:/Studies/projects/Semester Projects/Semester 4/DAA/Twiddle_puzzle_solver/src/game/TopDownDPPlayer.java"
 "D:/Studies/projects/Semester Projects/Semester 4/DAA/Twiddle_puzzle_solver/src/gui/TwiddleGUI.java"

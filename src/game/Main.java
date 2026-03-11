@@ -26,6 +26,7 @@ public class Main {
         System.out.println("6. MDF DP");
         System.out.println("7. Backtracking AI");
         System.out.println("8. Top-Down DP");
+        System.out.println("9. Bidirectional BFS");
 
         int choice = sc.nextInt();
 
@@ -68,12 +69,15 @@ public class Main {
 
                 System.out.println("DP table built. States: " + dp.stateCount());
                 if (dp.isTruncated()) {
-                    System.out.println("Warning: DP table hit memory/state limit. Solver will use partial policy.");
+                    System.out.println("Warning: DP table hit memory/state limit. "
+                        + "Solver will use partial policy.");
                 }
 
                 if (!init.session().isSolvable(board)) {
-                    System.out.println("Could not find a solvable random board using current DP table.");
-                    System.out.println("Try smaller N (recommended N <= 3) or increase DP state limit.");
+                    System.out.println("Could not find a solvable random board using "
+                        + "current DP table.");
+                    System.out.println("Try smaller N (recommended N <= 3) or increase "
+                        + "DP state limit.");
                     return;
                 }
 
@@ -86,6 +90,10 @@ public class Main {
 
             case 8:
                 computer = new TopDownDPPlayer(board);
+                break;
+
+            case 9:
+                computer = new BidirectionalBFSPlayer(board);
                 break;
 
             default:
@@ -120,7 +128,7 @@ public class Main {
         }
 
         if (board.isSolved()) {
-            System.out.println("Puzzle solved!");
+            System.out.println("Puzzle solved in " + board.getMoves() + " moves!");
         } else {
             System.out.println("Stopped by user.");
         }
@@ -146,13 +154,14 @@ public class Main {
             DPFlow.StepResult step = session.playNextMove(board);
             System.out.println("Computer chooses move: " + step.move());
             if (step.estimatedRemaining() != null) {
-                System.out.println("Estimated remaining moves (DP): " + step.estimatedRemaining());
+                System.out.println("Estimated remaining moves (DP): "
+                    + step.estimatedRemaining());
             }
             board.print();
         }
 
         if (board.isSolved()) {
-            System.out.println("Puzzle solved!");
+            System.out.println("Puzzle solved in " + board.getMoves() + " moves!");
         }
     }
 }

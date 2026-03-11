@@ -3,7 +3,6 @@ package gui;
 import game.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
@@ -11,12 +10,11 @@ import javax.swing.border.*;
 
 public class TwiddleGUI extends JFrame {
 
-    // ── Palette: deep navy + amber accent + soft off-white ──────────────────
     private static final Color BG_DARK       = new Color(10,  14,  26);
     private static final Color BG_MID        = new Color(16,  22,  42);
     private static final Color PANEL_BG      = new Color(22,  30,  56);
     private static final Color PANEL_BORDER  = new Color(45,  55,  90);
-    private static final Color ACCENT        = new Color(245, 168,  30);   // amber
+    private static final Color ACCENT        = new Color(245, 168,  30);
     private static final Color ACCENT_DIM    = new Color(180, 115,  10);
     private static final Color SOLVED_BG     = new Color(34,  90,  55);
     private static final Color SOLVED_TILE   = new Color(52, 211, 110);
@@ -27,15 +25,17 @@ public class TwiddleGUI extends JFrame {
     private static final Color BTN_HUMAN     = new Color(60,  80, 160);
     private static final Color BTN_COMPUTER  = new Color(50,  65, 130);
 
-    private static final Font FONT_TITLE   = new Font("Georgia",     Font.BOLD,  22);
-    private static final Font FONT_CARD    = new Font("Georgia",     Font.BOLD,  13);
-    private static final Font FONT_TILE    = new Font("Courier New", Font.BOLD,  17);
-    private static final Font FONT_LABEL   = new Font("Courier New", Font.PLAIN, 11);
-    private static final Font FONT_BTN     = new Font("Georgia",     Font.BOLD,  11);
-    private static final Font FONT_STATUS  = new Font("Courier New", Font.PLAIN, 10);
+    private static final Font FONT_TITLE  = new Font("Georgia",     Font.BOLD,  22);
+    private static final Font FONT_CARD   = new Font("Georgia",     Font.BOLD,  13);
+    private static final Font FONT_TILE   = new Font("Courier New", Font.BOLD,  17);
+    private static final Font FONT_LABEL  = new Font("Courier New", Font.PLAIN, 11);
+    private static final Font FONT_BTN    = new Font("Georgia",     Font.BOLD,  11);
+    private static final Font FONT_STATUS = new Font("Courier New", Font.PLAIN, 10);
 
     private static final String[] AI_METHODS = {
-        "A*", "BFS", "Spatial D&C", "Cycle D&C", "Depth D&C", "MDF DP", "Backtracking AI", "Top-Down DP"};
+        "A*", "BFS", "Bidirectional BFS", "Spatial D&C",
+        "Cycle D&C", "Depth D&C", "MDF DP", "Backtracking AI", "Top-Down DP"
+    };
 
     private JComboBox<String> sizeBox;
     private JPanel methodsContainer;
@@ -47,7 +47,7 @@ public class TwiddleGUI extends JFrame {
         setLayout(new BorderLayout(0, 0));
 
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-        int w = Math.min(1640, Math.max(1200, screen.width  - 40));
+        int w = Math.min(1800, Math.max(1300, screen.width  - 40));
         int h = Math.min(920,  Math.max(720,  screen.height - 60));
         setSize(w, h);
         setLocationRelativeTo(null);
@@ -62,12 +62,12 @@ public class TwiddleGUI extends JFrame {
     }
 
     // ── Header ───────────────────────────────────────────────────────────────
+
     private void buildHeader() {
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setOpaque(false);
         header.setBorder(new EmptyBorder(0, 0, 10, 0));
 
-        // Left: title block
         JPanel titleBlock = new JPanel();
         titleBlock.setOpaque(false);
         titleBlock.setLayout(new BoxLayout(titleBlock, BoxLayout.Y_AXIS));
@@ -77,12 +77,11 @@ public class TwiddleGUI extends JFrame {
         title.setForeground(ACCENT);
         titleBlock.add(title);
 
-        JLabel sub = new JLabel("8 solvers · 1 board · may the best algorithm win");
+        JLabel sub = new JLabel("9 solvers · 1 board · may the best algorithm win");
         sub.setFont(FONT_LABEL);
         sub.setForeground(TEXT_DIM);
         titleBlock.add(sub);
 
-        // Right: controls
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         controls.setOpaque(false);
 
@@ -90,8 +89,8 @@ public class TwiddleGUI extends JFrame {
         styleCombo(sizeBox);
         sizeBox.addActionListener(e -> rebuildBoards());
 
-        JButton rulesBtn  = makeBtn("Rules",          new Color(80, 60, 20), ACCENT);
-        JButton resetBtn  = makeBtn("New Board",       BTN_COMPUTER,          TEXT_BRIGHT);
+        JButton rulesBtn = makeBtn("Rules",     new Color(80, 60, 20), ACCENT);
+        JButton resetBtn = makeBtn("New Board", BTN_COMPUTER,          TEXT_BRIGHT);
 
         rulesBtn.addActionListener(e -> showRulesDialog());
         resetBtn.addActionListener(e -> rebuildBoards());
@@ -106,19 +105,17 @@ public class TwiddleGUI extends JFrame {
     }
 
     // ── Rules dialog ─────────────────────────────────────────────────────────
+
     private void showRulesDialog() {
         JDialog dlg = new JDialog(this, "Twiddle — Rules & Algorithms", true);
-        dlg.setSize(640, 560);
+        dlg.setSize(640, 580);
         dlg.setLocationRelativeTo(this);
         dlg.setResizable(false);
 
-        // Content pane with dark background
-        JPanel root = new JPanel(new BorderLayout(0, 0));
+        JPanel root = new JPanel(new BorderLayout());
         root.setBackground(BG_MID);
-        root.setBorder(new EmptyBorder(0, 0, 0, 0));
         dlg.setContentPane(root);
 
-        // Header stripe
         JPanel stripe = new JPanel(new BorderLayout());
         stripe.setBackground(PANEL_BG);
         stripe.setBorder(new EmptyBorder(14, 20, 14, 20));
@@ -128,7 +125,6 @@ public class TwiddleGUI extends JFrame {
         stripe.add(heading, BorderLayout.WEST);
         root.add(stripe, BorderLayout.NORTH);
 
-        // Scrollable text body
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.setBackground(BG_MID);
@@ -136,69 +132,81 @@ public class TwiddleGUI extends JFrame {
 
         String[][] sections = {
             {
-                "🎯  Objective",
-                "Arrange the numbered tiles into ascending order (1, 2, 3 … n²) reading " +
-                "left-to-right, top-to-bottom. The puzzle is solved when every tile sits in " +
-                "its correct position."
+                "Objective",
+                "Arrange the numbered tiles into ascending order (1, 2, 3 ... n^2) reading " +
+                "left-to-right, top-to-bottom. The puzzle is solved when every tile sits " +
+                "in its correct position."
             },
             {
-                "🔄  The Twiddle Move",
-                "A 'twiddle' rotates a 2×2 sub-grid of the board by 90° counter-clockwise. " +
-                "On an n×n board there are (n−1)² such sub-grids, each numbered 1 … (n−1)². " +
+                "The Twiddle Move",
+                "A 'twiddle' rotates a 2x2 sub-grid of the board by 90 degrees clockwise. " +
+                "On an n x n board there are (n-1)^2 such sub-grids, each numbered 1 to (n-1)^2. " +
                 "Move k corresponds to the sub-grid whose top-left corner is at " +
-                "row ⌊(k−1)/(n−1)⌋, column (k−1) mod (n−1)."
+                "row floor((k-1)/(n-1)), column (k-1) mod (n-1)."
             },
             {
-                "🧑  Human Mode",
+                "Human Mode",
                 "Numbered buttons appear below your board. Press a button to apply that " +
                 "twiddle. Tiles that are already in their correct position are highlighted " +
                 "in green. Try to beat the AIs!"
             },
             {
-                "🤖  A* Search",
+                "A* Search",
                 "An informed best-first search guided by an admissible heuristic (misplaced " +
-                "tiles or Manhattan distance). Guaranteed to find the optimal (fewest-move) " +
-                "solution. Can be slow on large boards."
+                "tiles / 4). Guaranteed to find the optimal (fewest-move) solution. " +
+                "Can be slow on large boards due to state-space size."
             },
             {
-                "🔍  BFS",
+                "BFS",
                 "Breadth-first search explores all states level by level. Also optimal, " +
-                "but consumes more memory than A* because no heuristic guides the frontier."
+                "but consumes more memory than A* because no heuristic prunes the frontier."
             },
             {
-                "✂️  Spatial D&C",
+                "Bidirectional BFS",
+                "Runs two simultaneous BFS frontiers: one forward from the scrambled state, " +
+                "one backward from the goal using inverse twiddle moves. They expand toward " +
+                "each other and stop the moment they meet. Explores ~b^(d/2) states instead " +
+                "of b^d — a dramatic speedup over standard BFS while still guaranteeing an " +
+                "optimal solution."
+            },
+            {
+                "Spatial D&C",
                 "Divide & Conquer that splits the board into spatial regions and solves " +
                 "each independently. Fast, but may not yield the minimum move count."
             },
             {
-                "🔁  Cycle D&C",
+                "Cycle D&C",
                 "Divide & Conquer based on permutation cycles. Decomposes the goal " +
                 "permutation into independent cycles and solves each cycle in sequence."
             },
             {
-                "📉  Depth D&C",
+                "Depth D&C",
                 "Divide & Conquer that recurses by board depth (rows/columns). Tiles are " +
                 "placed into their final rows first, then columns."
             },
             {
-                "📊  MDP DP",
-                "Markov-Decision Process inspired Dynamic Programming. Pre-computes a dp hashmap " + 
-                "containing the grid with its cost to reach goal state and a look-up table of " +
-                "optimal move sequences for reachable board states. Very fast once built, but " +
-                "table construction can be time-consuming for 4×4 boards. (current max number of "+
-                "states: 2,000,000)"
+                "MDF DP",
+                "Minimum-Depth-First Dynamic Programming. Pre-computes a lookup table of " +
+                "optimal move sequences for reachable board states (max 2,000,000 states). " +
+                "Very fast once built, but table construction can be time-consuming for 4x4."
             },
             {
-                "🔙  Backtracking AI",
-                "Systematic depth-limited backtracking with pruning. Explores the move " +
-                "tree and backtracks when a dead-end is detected. A good balance between " +
-                "speed and solution quality."
+                "Backtracking AI",
+                "Iterative-deepening backtracking with move ordering and pruning. Explores " +
+                "the move tree and backtracks when a dead-end is detected. Falls back to a " +
+                "greedy best move if no solution is found within depth 10."
             },
             {
-                "📌  Tips",
-                "• Click 'New Board' to generate a fresh scrambled board shared by all solvers.\n" +
-                "• Switch between 3×3 and 4×4 with the size selector — 4×4 is significantly harder.\n" +
-                "• Green tile = correctly placed. Count your moves against each AI's total!"
+                "Top-Down DP",
+                "Top-down memoised search keyed on (state, remaining-depth). Combines " +
+                "iterative deepening with a memo table so repeated sub-problems are solved " +
+                "only once. Bridges backtracking and dynamic programming."
+            },
+            {
+                "Tips",
+                "- Click 'New Board' to generate a fresh scrambled board shared by all solvers.\n" +
+                "- Switch between 3x3 and 4x4 with the size selector — 4x4 is significantly harder.\n" +
+                "- Green tile = correctly placed. Count your moves against each AI's total!"
             }
         };
 
@@ -217,7 +225,6 @@ public class TwiddleGUI extends JFrame {
         styleScrollBar(scroll);
         root.add(scroll, BorderLayout.CENTER);
 
-        // Footer close button
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 8));
         footer.setBackground(PANEL_BG);
         JButton close = makeBtn("Close", ACCENT_DIM, TEXT_BRIGHT);
@@ -256,8 +263,8 @@ public class TwiddleGUI extends JFrame {
         vsb.setBackground(BG_MID);
         vsb.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
             @Override protected void configureScrollBarColors() {
-                thumbColor      = new Color(70, 85, 140);
-                trackColor      = BG_MID;
+                thumbColor = new Color(70, 85, 140);
+                trackColor = BG_MID;
             }
             @Override protected JButton createDecreaseButton(int o) { return zeroBtn(); }
             @Override protected JButton createIncreaseButton(int o) { return zeroBtn(); }
@@ -270,8 +277,10 @@ public class TwiddleGUI extends JFrame {
     }
 
     // ── Methods viewport ─────────────────────────────────────────────────────
+
     private void buildMethodsArea() {
-        methodsContainer = new JPanel(new GridLayout(2, 4, 10, 10));
+        // 9 AI panels + 1 Human panel = 10 total -> 2 rows x 5 columns
+        methodsContainer = new JPanel(new GridLayout(2, 5, 10, 10));
         methodsContainer.setOpaque(false);
         add(methodsContainer, BorderLayout.CENTER);
     }
@@ -283,7 +292,7 @@ public class TwiddleGUI extends JFrame {
 
         methodsContainer.removeAll();
         for (String m : AI_METHODS) {
-            methodsContainer.add(new MethodPanel(m, true,  initial).container);
+            methodsContainer.add(new MethodPanel(m, true, initial).container);
         }
         methodsContainer.add(new MethodPanel("Human", false, initial).container);
 
@@ -292,6 +301,7 @@ public class TwiddleGUI extends JFrame {
     }
 
     // ── MethodPanel ──────────────────────────────────────────────────────────
+
     private class MethodPanel {
         final JPanel container;
         private final Board board;
@@ -309,7 +319,6 @@ public class TwiddleGUI extends JFrame {
             this.board      = new Board(initial.length);
             this.board.setGrid(copyGrid(initial));
 
-            // Card container
             container = new RoundedPanel(14, PANEL_BG, PANEL_BORDER);
             container.setLayout(new BorderLayout(0, 6));
             container.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -318,10 +327,9 @@ public class TwiddleGUI extends JFrame {
             JPanel top = new JPanel(new BorderLayout(4, 0));
             top.setOpaque(false);
 
-            // Colored dot + name
             JPanel nameRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
             nameRow.setOpaque(false);
-            JLabel dot = new JLabel("●");
+            JLabel dot = new JLabel("*");
             dot.setForeground(isComputer ? new Color(100, 160, 255) : ACCENT);
             dot.setFont(new Font("Courier New", Font.PLAIN, 10));
             JLabel nameLabel = new JLabel(method);
@@ -374,13 +382,14 @@ public class TwiddleGUI extends JFrame {
             bottom.add(Box.createVerticalStrut(5));
 
             if (isComputer) {
-                computerButton = makeBtn("▶  Solve Next", BTN_COMPUTER, TEXT_BRIGHT);
+                computerButton = makeBtn("Solve Next", BTN_COMPUTER, TEXT_BRIGHT);
                 computerButton.setAlignmentX(LEFT_ALIGNMENT);
                 computerButton.addActionListener(e -> runComputerMove());
                 bottom.add(computerButton);
             } else {
                 computerButton = null;
-                JPanel moveGrid = new JPanel(new GridLayout(board.size() - 1, board.size() - 1, 3, 3));
+                JPanel moveGrid = new JPanel(
+                    new GridLayout(board.size() - 1, board.size() - 1, 3, 3));
                 moveGrid.setOpaque(false);
                 moveGrid.setAlignmentX(LEFT_ALIGNMENT);
                 for (int i = 1; i <= board.totalMoves(); i++) {
@@ -400,6 +409,7 @@ public class TwiddleGUI extends JFrame {
 
         private void runHumanMove(int move) {
             if (board.isSolved()) return;
+            if (!isValidMove(move)) { statusLabel.setText("Invalid move: " + move); return; }
             board.executeMove(move);
             refreshBoard();
             moveLabel.setText(board.getMoves() + " moves");
@@ -411,10 +421,19 @@ public class TwiddleGUI extends JFrame {
             if (board.isSolved()) return;
             if ("MDF DP".equals(method)) { runDPMove(); return; }
 
-            Player p = buildPlayer();
+            final Player p;
+            try {
+                p = buildPlayer();
+            } catch (RuntimeException ex) {
+                statusLabel.setText("Solver setup failed");
+                return;
+            } catch (Error err) {
+                statusLabel.setText("Solver unavailable");
+                return;
+            }
             if (p == null) { statusLabel.setText("Unknown method"); return; }
 
-            statusLabel.setText("Thinking…");
+            statusLabel.setText("Thinking...");
             computerButton.setEnabled(false);
 
             new SwingWorker<Integer, Void>() {
@@ -422,6 +441,10 @@ public class TwiddleGUI extends JFrame {
                 @Override protected void done() {
                     try {
                         int mv = get();
+                        if (!isValidMove(mv)) {
+                            statusLabel.setText("Invalid move returned: " + mv);
+                            return;
+                        }
                         board.executeMove(mv);
                         refreshBoard();
                         moveLabel.setText(board.getMoves() + " moves");
@@ -436,27 +459,45 @@ public class TwiddleGUI extends JFrame {
             }.execute();
         }
 
+        private boolean isValidMove(int move) {
+            return move >= 1 && move <= board.totalMoves();
+        }
+
         private Player buildPlayer() {
             switch (method) {
-                case "A*":          { ComputerPlayer p = new ComputerPlayer(board); p.setAlgorithm(false); return p; }
-                case "BFS":         { ComputerPlayer p = new ComputerPlayer(board); p.setAlgorithm(true);  return p; }
-                case "Spatial D&C": { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(1); return p; }
-                case "Cycle D&C":   { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(2); return p; }
-                case "Depth D&C":   { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(3); return p; }
-                case "Backtracking AI": return new BacktrackingPlayer(board);
-                case "Top-Down DP": return new TopDownDPPlayer(board);
-                default: return null;
+                case "A*":
+                    { ComputerPlayer p = new ComputerPlayer(board); p.setAlgorithm(false); return p; }
+                case "BFS":
+                    { ComputerPlayer p = new ComputerPlayer(board); p.setAlgorithm(true); return p; }
+                case "Bidirectional BFS":
+                    return new BidirectionalBFSPlayer(board);
+                case "Spatial D&C":
+                    { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(1); return p; }
+                case "Cycle D&C":
+                    { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(2); return p; }
+                case "Depth D&C":
+                    { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(3); return p; }
+                case "Backtracking AI":
+                    return new BacktrackingPlayer(board);
+                case "Top-Down DP":
+                    return new TopDownDPPlayer(board);
+                default:
+                    return null;
             }
         }
 
         private void runDPMove() {
             if (!ensureDP()) return;
-            if (!dpInit.session().isSolvable(board)) { statusLabel.setText("Not solvable by DP"); return; }
+            if (!dpInit.session().isSolvable(board)) {
+                statusLabel.setText("Not solvable by DP");
+                return;
+            }
             DPFlow.StepResult step = dpInit.session().playNextMove(board);
             refreshBoard();
             moveLabel.setText(board.getMoves() + " moves");
             Integer rem = step.estimatedRemaining();
-            statusLabel.setText("Move " + step.move() + (rem != null ? " | ~" + rem + " left" : ""));
+            statusLabel.setText("Move " + step.move() +
+                (rem != null ? " | ~" + rem + " left" : ""));
             checkSolved();
         }
 
@@ -464,18 +505,31 @@ public class TwiddleGUI extends JFrame {
             if (dpInit != null) return true;
             if (board.size() > 3) {
                 int ans = JOptionPane.showConfirmDialog(TwiddleGUI.this,
-                    "MDF DP table for 4×4 may take time. Continue?",
-                    "Build DP Table", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-                if (ans != JOptionPane.YES_OPTION) { statusLabel.setText("Cancelled"); return false; }
+                    "MDF DP table for 4x4 may take time. Continue?",
+                    "Build DP Table", JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+                if (ans != JOptionPane.YES_OPTION) {
+                    statusLabel.setText("Cancelled");
+                    return false;
+                }
             }
             Cursor prev = getCursor();
             try {
                 setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                statusLabel.setText("Building DP table…");
+                statusLabel.setText("Building DP table...");
                 dpInit = DPFlow.initialize(board);
-            } finally { setCursor(prev); }
-            if (dpInit.reshuffles() > 0) { refreshBoard(); moveLabel.setText(board.getMoves() + " moves"); statusLabel.setText("Reshuffled"); }
-            if (!dpInit.session().isSolvable(board)) { statusLabel.setText("No DP-solvable state found"); return false; }
+            } finally {
+                setCursor(prev);
+            }
+            if (dpInit.reshuffles() > 0) {
+                refreshBoard();
+                moveLabel.setText(board.getMoves() + " moves");
+                statusLabel.setText("Reshuffled");
+            }
+            if (!dpInit.session().isSolvable(board)) {
+                statusLabel.setText("No DP-solvable state found");
+                return false;
+            }
             return true;
         }
 
@@ -487,7 +541,7 @@ public class TwiddleGUI extends JFrame {
                     int v = g[i][j];
                     boolean ok = (v == i * n + j + 1);
                     cells[i][j].setText(String.valueOf(v));
-                    cells[i][j].setBackground(ok ? SOLVED_BG   : TILE_BG);
+                    cells[i][j].setBackground(ok ? SOLVED_BG  : TILE_BG);
                     cells[i][j].setForeground(ok ? SOLVED_TILE : TEXT_BRIGHT);
                 }
             }
@@ -496,13 +550,14 @@ public class TwiddleGUI extends JFrame {
         private void checkSolved() {
             if (!board.isSolved()) return;
             statusLabel.setForeground(SOLVED_TILE);
-            statusLabel.setText("✓ Solved in " + board.getMoves() + " moves");
+            statusLabel.setText("Solved in " + board.getMoves() + " moves");
             if (computerButton != null) computerButton.setEnabled(false);
             humanBtns.forEach(b -> b.setEnabled(false));
         }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
     private int[][] copyGrid(int[][] src) {
         int[][] c = new int[src.length][src[0].length];
         for (int i = 0; i < src.length; i++) c[i] = src[i].clone();
@@ -519,12 +574,11 @@ public class TwiddleGUI extends JFrame {
         b.setOpaque(true);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         b.setBorder(new EmptyBorder(5, 12, 5, 12));
-        // hover effect
         b.addMouseListener(new MouseAdapter() {
             @Override public void mouseEntered(MouseEvent e) {
                 if (b.isEnabled()) b.setBackground(bg.brighter());
             }
-            @Override public void mouseExited(MouseEvent e)  {
+            @Override public void mouseExited(MouseEvent e) {
                 b.setBackground(bg);
             }
         });
@@ -540,20 +594,21 @@ public class TwiddleGUI extends JFrame {
     }
 
     // ── Custom components ────────────────────────────────────────────────────
-    /** Dark gradient background */
+
     private static class GradientPanel extends JPanel {
         @Override protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            GradientPaint gp = new GradientPaint(0, 0, new Color(8, 12, 24), 0, getHeight(), new Color(18, 24, 48));
-            g2.setPaint(gp);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setPaint(new GradientPaint(
+                0, 0, new Color(8, 12, 24),
+                0, getHeight(), new Color(18, 24, 48)));
             g2.fillRect(0, 0, getWidth(), getHeight());
             g2.dispose();
         }
     }
 
-    /** Panel with rounded corners, filled background, and a subtle border */
     private static class RoundedPanel extends JPanel {
         private final int arc;
         private final Color bg, border;
@@ -563,7 +618,8 @@ public class TwiddleGUI extends JFrame {
         }
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(bg);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
             g2.setColor(border);
@@ -574,21 +630,21 @@ public class TwiddleGUI extends JFrame {
         }
     }
 
+    // ── Main ─────────────────────────────────────────────────────────────────
+
     public static void main(String[] args) {
-        // Attempt a dark look-and-feel if available, fall back gracefully
         try {
             for (UIManager.LookAndFeelInfo laf : UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(laf.getName())) {
                     UIManager.setLookAndFeel(laf.getClassName());
-                    // Override Nimbus defaults for dark theme
-                    UIManager.put("control",         BG_MID);
-                    UIManager.put("info",            BG_MID);
-                    UIManager.put("nimbusBase",      new Color(18, 24, 48));
-                    UIManager.put("nimbusBlueGrey",  new Color(30, 40, 72));
-                    UIManager.put("nimbusFocus",      new Color(245, 168, 30));
-                    UIManager.put("text",            new Color(240, 240, 255));
-                    UIManager.put("OptionPane.background",    BG_MID);
-                    UIManager.put("Panel.background",         BG_MID);
+                    UIManager.put("control",               new Color(16, 22, 42));
+                    UIManager.put("info",                  new Color(16, 22, 42));
+                    UIManager.put("nimbusBase",            new Color(18, 24, 48));
+                    UIManager.put("nimbusBlueGrey",        new Color(30, 40, 72));
+                    UIManager.put("nimbusFocus",           new Color(245, 168, 30));
+                    UIManager.put("text",                  new Color(240, 240, 255));
+                    UIManager.put("OptionPane.background", new Color(16, 22, 42));
+                    UIManager.put("Panel.background",      new Color(16, 22, 42));
                     break;
                 }
             }
@@ -596,7 +652,4 @@ public class TwiddleGUI extends JFrame {
 
         SwingUtilities.invokeLater(TwiddleGUI::new);
     }
-
-    // expose BG_MID as package-level for anonymous classes above
-    private static final Color BG_MID_REF = new Color(16, 22, 42);
 }
