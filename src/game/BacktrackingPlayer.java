@@ -14,7 +14,8 @@ public class BacktrackingPlayer extends AbstractPlayer {
         int[][] currentGrid = board.getGrid();
         
         //Iterative Deepening 
-        for (int maxDepth = 1; maxDepth <= 10; maxDepth++) { 
+        for (int maxDepth = 1; maxDepth <= 10; maxDepth++) {
+            if (Thread.currentThread().isInterrupted()) break; 
             Set<String> visited = new HashSet<>();
             List<Integer> path = new ArrayList<>();
             
@@ -29,6 +30,7 @@ public class BacktrackingPlayer extends AbstractPlayer {
     }
 
     private boolean backtrack(int[][] grid, int depth, int maxDepth, List<Integer> path, Set<String> visited) {
+        if (Thread.currentThread().isInterrupted()) return false;
         if (isSolved(grid)) return true;
         
         //Pruning: if depth+estimateRemaining > maxdepth stop searching this path
@@ -41,6 +43,7 @@ public class BacktrackingPlayer extends AbstractPlayer {
         //Move Ordering
         List<MoveOption> options = new ArrayList<>();
         for (int m = 1; m <= board.totalMoves(); m++) {
+            if (Thread.currentThread().isInterrupted()) break;
             int[][] nextGrid = rotateCopy(grid, m);
             options.add(new MoveOption(m, estimateRemaining(nextGrid), nextGrid));
         }
@@ -49,6 +52,7 @@ public class BacktrackingPlayer extends AbstractPlayer {
         options.sort(Comparator.comparingInt(o -> o.score));
 
         for (MoveOption opt : options) {
+            if (Thread.currentThread().isInterrupted()) break;
             path.add(opt.moveId);
             if (backtrack(opt.grid, depth + 1, maxDepth, path, visited)) {
                 return true; 

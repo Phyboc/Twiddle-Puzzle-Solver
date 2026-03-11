@@ -46,7 +46,7 @@ public class BiDirBFSPlayer extends AbstractPlayer {
         if (startKey.equals(goalKey)) return 1;
 
         while (!fwdQueue.isEmpty() || !bwdQueue.isEmpty()) {
-
+            if (Thread.currentThread().isInterrupted()) return 1;
             // Always expand the smaller frontier to keep both balanced
             if (!fwdQueue.isEmpty() &&
                     (bwdQueue.isEmpty() || fwdQueue.size() <= bwdQueue.size())) {
@@ -74,6 +74,7 @@ public class BiDirBFSPlayer extends AbstractPlayer {
         String stateKey = encode(state);
 
         for (int m = 1; m <= board.totalMoves(); m++) {
+            if (Thread.currentThread().isInterrupted()) return null;
             int[][] next = rotateCopy(state, m);
             String key   = encode(next);
 
@@ -97,6 +98,7 @@ public class BiDirBFSPlayer extends AbstractPlayer {
         String stateKey = encode(state);
 
         for (int m = 1; m <= board.totalMoves(); m++) {
+            if (Thread.currentThread().isInterrupted()) return null;
             // rotateInverseCopy is the key: instead of asking
             // "where do we go FROM here?", we ask
             // "which state transitions INTO here via move m?"

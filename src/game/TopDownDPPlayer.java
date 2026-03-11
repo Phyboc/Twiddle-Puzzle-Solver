@@ -20,6 +20,7 @@ public class TopDownDPPlayer extends AbstractPlayer {
         
         // Iteratively increase the depth limit to ensure we find the shortest path
         for (int maxDepth = 1; maxDepth <= 15; maxDepth++) { 
+            if (Thread.currentThread().isInterrupted()) break;
             Set<String> visitedPath = new HashSet<>();
             int move = topDownDP(currentGrid, 0, maxDepth, visitedPath);
             if (move != -1) {
@@ -35,6 +36,7 @@ public class TopDownDPPlayer extends AbstractPlayer {
     }
 
     private int topDownDP(int[][] grid, int currentDepth, int maxDepth, Set<String> visited) {
+        if (Thread.currentThread().isInterrupted()) return -1;
         if (isSolved(grid)) {
             return 0; // 0 indicates the goal has been reached
         }
@@ -60,6 +62,7 @@ public class TopDownDPPlayer extends AbstractPlayer {
 
         // Try all possible Twiddle rotations
         for (int m = 1; m <= board.totalMoves(); m++) {
+            if (Thread.currentThread().isInterrupted()) break;
             int[][] nextGrid = rotateCopy(grid, m);
             
             // Recursive relation

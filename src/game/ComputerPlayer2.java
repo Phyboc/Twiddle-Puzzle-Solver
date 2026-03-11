@@ -38,6 +38,7 @@ public class ComputerPlayer2 extends AbstractPlayer {
 
     @Override
     public int getMove() {
+        if (Thread.currentThread().isInterrupted()) return 1;
         bestH.clear(); 
         int[][] grid = board.getGrid();
         visitedStates.add(encode(grid));   
@@ -72,6 +73,7 @@ public class ComputerPlayer2 extends AbstractPlayer {
     }
 
     private int solvewithdc() {
+        if (Thread.currentThread().isInterrupted()) return 1;
         int[][] grid = board.getGrid();
         Rotator r = rotation(grid, 0, grid.length - 1, 0, grid[0].length - 1);
         if (r == null) return 1;
@@ -79,6 +81,7 @@ public class ComputerPlayer2 extends AbstractPlayer {
     }
 
     private Rotator rotation(int[][] matrix, int s1, int s2, int e1, int e2){
+        if (Thread.currentThread().isInterrupted()) return null;
         if (s1 >= s2 || e1 >= e2) return null;
 
         if (((s2 - s1) == 1) && ((e2 - e1) == 1)) {
@@ -102,7 +105,7 @@ public class ComputerPlayer2 extends AbstractPlayer {
         children.add(rotation(matrix, s1+1, s2, e1+1, e2));
         children.removeIf(Objects::isNull);
         children.sort((a,b)->a.h-b.h);
-        return children.isEmpty()?null:children.get(0);
+        return Thread.currentThread().isInterrupted() ? null : (children.isEmpty()?null:children.get(0));
     }
 
 // cycle d&c
@@ -120,6 +123,7 @@ public class ComputerPlayer2 extends AbstractPlayer {
         int bestScore = Integer.MAX_VALUE;
 
         for (int m = 1; m <= board.totalMoves(); m++) {
+            if (Thread.currentThread().isInterrupted()) return 1;
 
             if (m == lastMove) continue; 
             int[][] next = rotateCopy(grid, m);
@@ -189,6 +193,7 @@ public class ComputerPlayer2 extends AbstractPlayer {
         int bestScore = Integer.MAX_VALUE;
 
         for (int m = 1; m <= board.totalMoves(); m++) {
+            if (Thread.currentThread().isInterrupted()) return 1;
 
             if (m == lastMove) continue;
 
@@ -216,6 +221,7 @@ public class ComputerPlayer2 extends AbstractPlayer {
 
         int currentH = h2(state);
 
+        if (Thread.currentThread().isInterrupted()) return Integer.MAX_VALUE;
         if (depth == 0 || currentH == 0)
             return currentH;
 
@@ -229,7 +235,7 @@ public class ComputerPlayer2 extends AbstractPlayer {
         int best = Integer.MAX_VALUE;
 
         for (int m = 1; m <= board.totalMoves(); m++) {
-
+            if (Thread.currentThread().isInterrupted()) return Integer.MAX_VALUE;
             int[][] next = rotateCopy(state, m);
             int score = exploreDepth(next, depth - 1, best);
 

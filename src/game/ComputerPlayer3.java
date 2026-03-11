@@ -46,10 +46,16 @@ public class ComputerPlayer3 {
         boolean truncated = false;
 
         while (!q.isEmpty()) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new RuntimeException(new InterruptedException());
+            }
             int[][] state = q.poll();
             int dist = distance.get(encode(state));
 
             for (int m = 1; m <= board.totalMoves(); m++) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new RuntimeException(new InterruptedException());
+                }
                 int[][] prev = rotateInverseCopy(state, m);
                 String key = encode(prev);
                 if (!distance.containsKey(key)) {
@@ -87,6 +93,7 @@ public class ComputerPlayer3 {
         int bestDist = Integer.MAX_VALUE;
 
         for (int m = 1; m <= board.totalMoves(); m++) {
+            if (Thread.currentThread().isInterrupted()) break;
             int[][] next = rotateCopy(grid, m);
             String nextKey = encode(next);
             if (visited != null && visited.contains(nextKey))
@@ -102,6 +109,7 @@ public class ComputerPlayer3 {
             return bestMove;
 
         for (int m = 1; m <= board.totalMoves(); m++) {
+            if (Thread.currentThread().isInterrupted()) break;
             int[][] next = rotateCopy(grid, m);
             Integer d = data.distance.get(encode(next));
             if (d != null && d < bestDist) {

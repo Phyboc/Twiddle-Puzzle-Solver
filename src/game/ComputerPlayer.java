@@ -50,6 +50,7 @@ public class ComputerPlayer extends AbstractPlayer {
         open.add(start);
 
         while (!open.isEmpty()) {
+            if (Thread.currentThread().isInterrupted()) return 1;
             State cur = open.poll();
             String key = encode(cur.grid);
 
@@ -62,6 +63,7 @@ public class ComputerPlayer extends AbstractPlayer {
                 return extractFirstMove(cur);
 
             for (int m = 1; m <= board.totalMoves(); m++) {
+                if (Thread.currentThread().isInterrupted()) return 1;
                 int[][] next = rotate(cur.grid, m);
                 open.add(new State(next, cur.g + 1, m, cur));
             }
@@ -78,12 +80,14 @@ public class ComputerPlayer extends AbstractPlayer {
         seen.add(encode(start.grid));
 
         while (!q.isEmpty()) {
+            if (Thread.currentThread().isInterrupted()) return 1;
             State cur = q.poll();
 
             if (isSolved(cur.grid))
                 return extractFirstMove(cur);
 
             for (int m = 1; m <= board.totalMoves(); m++) {
+                if (Thread.currentThread().isInterrupted()) return 1;
                 int[][] next = rotate(cur.grid, m);
                 String key = encode(next);
                 if (!seen.contains(key)) {

@@ -308,6 +308,8 @@ public class TwiddleGUI extends JFrame {
         private final JLabel[][] cells;
         private final JLabel moveLabel, statusLabel;
         private final JButton computerButton;
+        private final JButton stopButton;              // new cancel/terminate button
+        private SwingWorker<Integer, Void> worker;      // current background task
         private final List<JButton> humanBtns = new ArrayList<>();
         private final String method;
         private final boolean isComputer;
@@ -383,11 +385,28 @@ public class TwiddleGUI extends JFrame {
 
             if (isComputer) {
                 computerButton = makeBtn("Solve Next", BTN_COMPUTER, TEXT_BRIGHT);
+                stopButton     = makeBtn("Terminate", ACCENT_DIM, TEXT_BRIGHT);
+                stopButton.setAlignmentX(LEFT_ALIGNMENT);
+                stopButton.setEnabled(false);
+                stopButton.addActionListener(e -> {
+                    if (worker != null && !worker.isDone()) {
+                        worker.cancel(true);
+                        statusLabel.setText("Cancelled");
+                    }
+                });
+
                 computerButton.setAlignmentX(LEFT_ALIGNMENT);
                 computerButton.addActionListener(e -> runComputerMove());
-                bottom.add(computerButton);
+
+                // put the two buttons side by side
+                JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+                btnRow.setOpaque(false);
+                btnRow.add(computerButton);
+                btnRow.add(stopButton);
+                bottom.add(btnRow);
             } else {
                 computerButton = null;
+                stopButton = null;
                 JPanel moveGrid = new JPanel(
                     new GridLayout(board.size() - 1, board.size() - 1, 3, 3));
                 moveGrid.setOpaque(false);
@@ -419,42 +438,84 @@ public class TwiddleGUI extends JFrame {
 
         private void runComputerMove() {
             if (board.isSolved()) return;
-            if ("MDF DP".equals(method)) { runDPMove(); return; }
-
-            final Player p;
-            try {
-                p = buildPlayer();
-            } catch (Throwable t) {
-                t.printStackTrace();  // add this
-                statusLabel.setText("Solver unavailable: " + t.getMessage());
-                return;
-            }
-            if (p == null) { statusLabel.setText("Unknown method"); return; }
 
             statusLabel.setText("Thinking...");
             computerButton.setEnabled(false);
+            if (stopButton != null) stopButton.setEnabled(true);
 
-            new SwingWorker<Integer, Void>() {
-                @Override protected Integer doInBackground() { return p.getMove(); }
-                @Override protected void done() {
+            worker = new SwingWorker<Integer, Void>() {
+                @Override protected Integer doInBackground() {
                     try {
-                        int mv = get();
-                        if (!isValidMove(mv)) {
-                            statusLabel.setText("Invalid move returned: " + mv);
-                            return;
+                        if ("MDF DP".equals(method)) {
+                            // handle DP computation & move in background thread
+                            if (!ensureDP()) {
+                                // either cancelled or not solvable
+                                return null;
+                            }
+
+                            if (!dpInit.session().isSolvable(board))
+                                return null;
+
+                            DPFlow.StepResult step = dpInit.session().playNextMove(board);
+                            Integer rem = step.estimatedRemaining();
+
+                            // update UI on EDT
+                            SwingUtilities.invokeLater(() -> {
+                                board.executeMove(step.move());
+                                refreshBoard();
+                                moveLabel.setText(board.getMoves() + " moves");
+                                statusLabel.setText("Move " + step.move() +
+                                        (rem != null ? " | ~" + rem + " left" : ""));
+                                checkSolved();
+                            });
+                            return step.move();
+                        } else {
+                            final Player p = buildPlayer();
+                            if (p == null) return null;
+                            return p.getMove();
                         }
-                        board.executeMove(mv);
-                        refreshBoard();
-                        moveLabel.setText(board.getMoves() + " moves");
-                        statusLabel.setText("Chose move " + mv);
-                        checkSolved();
                     } catch (Exception ex) {
-                        statusLabel.setText("Calculation failed");
-                    } finally {
-                        if (!board.isSolved()) computerButton.setEnabled(true);
+                        if (isCancelled()) {
+                            // swallow
+                            return null;
+                        }
+                        throw ex;
                     }
                 }
-            }.execute();
+
+                @Override protected void done() {
+                    try {
+                        if (isCancelled()) {
+                            statusLabel.setText("Cancelled");
+                            return;
+                        }
+                        Integer mv = get();
+                        if (mv != null) {
+                            if (!isValidMove(mv)) {
+                                statusLabel.setText("Invalid move returned: " + mv);
+                                return;
+                            }
+                            if (!"MDF DP".equals(method)) {
+                                board.executeMove(mv);
+                                refreshBoard();
+                                moveLabel.setText(board.getMoves() + " moves");
+                                statusLabel.setText("Chose move " + mv);
+                                checkSolved();
+                            }
+                        }
+                    } catch (Exception ex) {
+                        if (!isCancelled())
+                            statusLabel.setText("Calculation failed");
+                    } finally {
+                        if (!board.isSolved()) {
+                            computerButton.setEnabled(true);
+                        }
+                        if (stopButton != null)
+                            stopButton.setEnabled(false);
+                    }
+                }
+            };
+            worker.execute();
         }
 
         private boolean isValidMove(int move) {
@@ -500,32 +561,53 @@ public class TwiddleGUI extends JFrame {
         }
 
         private boolean ensureDP() {
+            // make this method safe to call from either EDT or a background thread
             if (dpInit != null) return true;
+
+            // show confirmation dialog on EDT and wait for result
             if (board.size() > 3) {
-                int ans = JOptionPane.showConfirmDialog(TwiddleGUI.this,
-                    "MDF DP table for 4x4 may take time. Continue?",
-                    "Build DP Table", JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE);
-                if (ans != JOptionPane.YES_OPTION) {
-                    statusLabel.setText("Cancelled");
+                final int[] ans = new int[1];
+                try {
+                    SwingUtilities.invokeAndWait(() ->
+                        ans[0] = JOptionPane.showConfirmDialog(TwiddleGUI.this,
+                            "MDF DP table for 4x4 may take time. Continue?",
+                            "Build DP Table", JOptionPane.YES_NO_OPTION,
+                            JOptionPane.WARNING_MESSAGE)
+                    );
+                } catch (Exception e) {
+                    return false;
+                }
+                if (ans[0] != JOptionPane.YES_OPTION) {
+                    SwingUtilities.invokeLater(() -> statusLabel.setText("Cancelled"));
                     return false;
                 }
             }
+
             Cursor prev = getCursor();
+            // update UI via EDT
+            SwingUtilities.invokeLater(() -> setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)));
+            SwingUtilities.invokeLater(() -> statusLabel.setText("Building DP table..."));
+
             try {
-                setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                statusLabel.setText("Building DP table...");
                 dpInit = DPFlow.initialize(board);
+            } catch (RuntimeException e) {
+                if (Thread.currentThread().isInterrupted()) {
+                    return false; // cancelled during build
+                }
+                throw e;
             } finally {
-                setCursor(prev);
+                SwingUtilities.invokeLater(() -> setCursor(prev));
             }
+
             if (dpInit.reshuffles() > 0) {
-                refreshBoard();
-                moveLabel.setText(board.getMoves() + " moves");
-                statusLabel.setText("Reshuffled");
+                SwingUtilities.invokeLater(() -> {
+                    refreshBoard();
+                    moveLabel.setText(board.getMoves() + " moves");
+                    statusLabel.setText("Reshuffled");
+                });
             }
             if (!dpInit.session().isSolvable(board)) {
-                statusLabel.setText("No DP-solvable state found");
+                SwingUtilities.invokeLater(() -> statusLabel.setText("No DP-solvable state found"));
                 return false;
             }
             return true;
