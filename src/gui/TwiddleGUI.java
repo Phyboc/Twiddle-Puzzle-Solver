@@ -35,8 +35,7 @@ public class TwiddleGUI extends JFrame {
     private static final Font FONT_STATUS  = new Font("Courier New", Font.PLAIN, 10);
 
     private static final String[] AI_METHODS = {
-        "A*", "BFS", "Spatial D&C", "Cycle D&C", "Depth D&C", "MDF DP", "Backtracking AI"
-    };
+        "A*", "BFS", "Spatial D&C", "Cycle D&C", "Depth D&C", "MDF DP", "Backtracking AI", "Top-Down DP"};
 
     private JComboBox<String> sizeBox;
     private JPanel methodsContainer;
@@ -445,6 +444,7 @@ public class TwiddleGUI extends JFrame {
                 case "Cycle D&C":   { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(2); return p; }
                 case "Depth D&C":   { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(3); return p; }
                 case "Backtracking AI": return new BacktrackingPlayer(board);
+                case "Top-Down DP": return new TopDownDPPlayer(board);
                 default: return null;
             }
         }
