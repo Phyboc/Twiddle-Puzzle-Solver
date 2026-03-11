@@ -339,8 +339,6 @@ If the GUI does not include a `main()` method, you can:
 
 ## GUI Preview
 
-*(Add a screenshot of your GUI here)*
-
 ![Twiddle GUI](img/gui.png)
 
 ---
