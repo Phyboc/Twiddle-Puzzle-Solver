@@ -424,11 +424,9 @@ public class TwiddleGUI extends JFrame {
             final Player p;
             try {
                 p = buildPlayer();
-            } catch (RuntimeException ex) {
-                statusLabel.setText("Solver setup failed");
-                return;
-            } catch (Error err) {
-                statusLabel.setText("Solver unavailable");
+            } catch (Throwable t) {
+                t.printStackTrace();  // add this
+                statusLabel.setText("Solver unavailable: " + t.getMessage());
                 return;
             }
             if (p == null) { statusLabel.setText("Unknown method"); return; }
@@ -470,7 +468,7 @@ public class TwiddleGUI extends JFrame {
                 case "BFS":
                     { ComputerPlayer p = new ComputerPlayer(board); p.setAlgorithm(true); return p; }
                 case "Bidirectional BFS":
-                    return new BidirectionalBFSPlayer(board);
+                    return new BiDirBFSPlayer(board);
                 case "Spatial D&C":
                     { ComputerPlayer2 p = new ComputerPlayer2(board); p.setMode(1); return p; }
                 case "Cycle D&C":

@@ -93,7 +93,7 @@ public class Main {
                 break;
 
             case 9:
-                computer = new BidirectionalBFSPlayer(board);
+                computer = new BiDirBFSPlayer(board);
                 break;
 
             default:

@@ -2,9 +2,9 @@ package game;
 
 import java.util.*;
 
-public class BidirectionalBFSPlayer extends AbstractPlayer {
+public class BiDirBFSPlayer extends AbstractPlayer {
 
-    public BidirectionalBFSPlayer(Board board) {
+    public BiDirBFSPlayer(Board board) {
         super(board);
     }
 
