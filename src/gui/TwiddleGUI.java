@@ -24,6 +24,7 @@ public class TwiddleGUI extends JFrame {
     private static final Color TEXT_DIM      = new Color(130, 145, 185);
     private static final Color BTN_HUMAN     = new Color(60,  80, 160);
     private static final Color BTN_COMPUTER  = new Color(50,  65, 130);
+    private static final Color HIGHLIGHT_ROTATE = new Color(255, 210, 70);
 
     private static final Font FONT_TITLE  = new Font("Georgia",     Font.BOLD,  22);
     private static final Font FONT_CARD   = new Font("Georgia",     Font.BOLD,  13);
@@ -32,12 +33,16 @@ public class TwiddleGUI extends JFrame {
     private static final Font FONT_BTN    = new Font("Georgia",     Font.BOLD,  11);
     private static final Font FONT_STATUS = new Font("Courier New", Font.PLAIN, 10);
 
+    private static final int DEFAULT_AUTO_PLAY_DELAY_MS = 3500;
+    private static final int ROTATE_FLASH_MS = 700;
+
     private static final String[] AI_METHODS = {
         "A*", "BFS", "Bidirectional BFS", "Spatial D&C",
         "Cycle D&C", "Depth D&C", "MDF DP", "Backtracking AI", "Top-Down DP"
     };
 
     private JComboBox<String> sizeBox;
+    private JSpinner globalDelaySpinner;
     private JPanel methodsContainer;
 
     public TwiddleGUI() {
@@ -92,10 +97,19 @@ public class TwiddleGUI extends JFrame {
         JButton rulesBtn = makeBtn("Rules",     new Color(80, 60, 20), ACCENT);
         JButton resetBtn = makeBtn("New Board", BTN_COMPUTER,          TEXT_BRIGHT);
 
+        JLabel delayLabel = new JLabel("Auto Delay (s)");
+        delayLabel.setFont(FONT_STATUS);
+        delayLabel.setForeground(TEXT_DIM);
+        globalDelaySpinner = new JSpinner(new SpinnerNumberModel(
+            DEFAULT_AUTO_PLAY_DELAY_MS / 1000.0, 0.0, 5.0, 0.5));
+        styleDelaySpinner(globalDelaySpinner, ACCENT);
+
         rulesBtn.addActionListener(e -> showRulesDialog());
         resetBtn.addActionListener(e -> rebuildBoards());
 
         controls.add(sizeBox);
+        controls.add(delayLabel);
+        controls.add(globalDelaySpinner);
         controls.add(rulesBtn);
         controls.add(resetBtn);
 
@@ -308,12 +322,28 @@ public class TwiddleGUI extends JFrame {
         private final JLabel[][] cells;
         private final JLabel moveLabel, statusLabel;
         private final JButton computerButton;
-        private final JButton stopButton;              // new cancel/terminate button
-        private SwingWorker<Integer, Void> worker;      // current background task
+        private final JButton autoPlayButton;
+        private final JButton stopButton;
+        private SwingWorker<MoveResult, Void> worker;
         private final List<JButton> humanBtns = new ArrayList<>();
         private final String method;
         private final boolean isComputer;
         private DPFlow.Initialization dpInit;
+        private Timer autoPlayTimer;
+        private Timer rotateFlashTimer;
+        private boolean autoPlaying;
+
+        private class MoveResult {
+            final int move;
+            final Integer remaining;
+            final boolean alreadyApplied;
+
+            MoveResult(int move, Integer remaining, boolean alreadyApplied) {
+                this.move = move;
+                this.remaining = remaining;
+                this.alreadyApplied = alreadyApplied;
+            }
+        }
 
         MethodPanel(String method, boolean isComputer, int[][] initial) {
             this.method     = method;
@@ -385,10 +415,12 @@ public class TwiddleGUI extends JFrame {
 
             if (isComputer) {
                 computerButton = makeBtn("Solve Next", BTN_COMPUTER, TEXT_BRIGHT);
+                autoPlayButton = makeBtn("Auto Play", new Color(70, 100, 180), TEXT_BRIGHT);
                 stopButton     = makeBtn("Terminate", ACCENT_DIM, TEXT_BRIGHT);
                 stopButton.setAlignmentX(LEFT_ALIGNMENT);
                 stopButton.setEnabled(false);
                 stopButton.addActionListener(e -> {
+                    stopAutoPlay();
                     if (worker != null && !worker.isDone()) {
                         worker.cancel(true);
                         statusLabel.setText("Cancelled");
@@ -398,14 +430,31 @@ public class TwiddleGUI extends JFrame {
                 computerButton.setAlignmentX(LEFT_ALIGNMENT);
                 computerButton.addActionListener(e -> runComputerMove());
 
-                // put the two buttons side by side
+                autoPlayButton.setAlignmentX(LEFT_ALIGNMENT);
+                autoPlayButton.addActionListener(e -> {
+                    if (autoPlaying) {
+                        stopAutoPlay();
+                        statusLabel.setForeground(TEXT_DIM);
+                        statusLabel.setText("Auto play stopped");
+                    } else {
+                        startAutoPlay();
+                    }
+                });
+
                 JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
                 btnRow.setOpaque(false);
                 btnRow.add(computerButton);
-                btnRow.add(stopButton);
+                btnRow.add(autoPlayButton);
                 bottom.add(btnRow);
+
+                JPanel stopRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+                stopRow.setOpaque(false);
+                stopRow.add(stopButton);
+                bottom.add(Box.createVerticalStrut(4));
+                bottom.add(stopRow);
             } else {
                 computerButton = null;
+                autoPlayButton = null;
                 stopButton = null;
                 JPanel moveGrid = new JPanel(
                     new GridLayout(board.size() - 1, board.size() - 1, 3, 3));
@@ -429,27 +478,30 @@ public class TwiddleGUI extends JFrame {
         private void runHumanMove(int move) {
             if (board.isSolved()) return;
             if (!isValidMove(move)) { statusLabel.setText("Invalid move: " + move); return; }
-            board.executeMove(move);
-            refreshBoard();
-            moveLabel.setText(board.getMoves() + " moves");
-            statusLabel.setText("Move " + move + " applied");
-            checkSolved();
+            applyMoveWithHighlight(move, "Move " + move + " applied");
         }
 
         private void runComputerMove() {
-            if (board.isSolved()) return;
+            runComputerMove(false);
+        }
 
-            statusLabel.setText("Thinking...");
+        private void runComputerMove(boolean fromAutoPlay) {
+            if (board.isSolved()) return;
+            if (worker != null && !worker.isDone()) return;
+
+            statusLabel.setForeground(TEXT_DIM);
+            statusLabel.setText(fromAutoPlay ? "Auto thinking..." : "Thinking...");
             computerButton.setEnabled(false);
+            if (autoPlayButton != null) {
+                autoPlayButton.setEnabled(!board.isSolved());
+            }
             if (stopButton != null) stopButton.setEnabled(true);
 
-            worker = new SwingWorker<Integer, Void>() {
-                @Override protected Integer doInBackground() {
+            worker = new SwingWorker<MoveResult, Void>() {
+                @Override protected MoveResult doInBackground() {
                     try {
                         if ("MDF DP".equals(method)) {
-                            // handle DP computation & move in background thread
                             if (!ensureDP()) {
-                                // either cancelled or not solvable
                                 return null;
                             }
 
@@ -457,28 +509,14 @@ public class TwiddleGUI extends JFrame {
                                 return null;
 
                             DPFlow.StepResult step = dpInit.session().playNextMove(board);
-                            Integer rem = step.estimatedRemaining();
-
-                            // update UI on EDT
-                            SwingUtilities.invokeLater(() -> {
-                                board.executeMove(step.move());
-                                refreshBoard();
-                                moveLabel.setText(board.getMoves() + " moves");
-                                statusLabel.setText("Move " + step.move() +
-                                        (rem != null ? " | ~" + rem + " left" : ""));
-                                checkSolved();
-                            });
-                            return step.move();
+                            return new MoveResult(step.move(), step.estimatedRemaining(), true);
                         } else {
                             final Player p = buildPlayer();
                             if (p == null) return null;
-                            return p.getMove();
+                            return new MoveResult(p.getMove(), null, false);
                         }
                     } catch (Exception ex) {
-                        if (isCancelled()) {
-                            // swallow
-                            return null;
-                        }
+                        if (isCancelled()) return null;
                         throw ex;
                     }
                 }
@@ -486,36 +524,114 @@ public class TwiddleGUI extends JFrame {
                 @Override protected void done() {
                     try {
                         if (isCancelled()) {
+                            statusLabel.setForeground(TEXT_DIM);
                             statusLabel.setText("Cancelled");
                             return;
                         }
-                        Integer mv = get();
-                        if (mv != null) {
-                            if (!isValidMove(mv)) {
-                                statusLabel.setText("Invalid move returned: " + mv);
+                        MoveResult result = get();
+                        if (result != null) {
+                            if (!isValidMove(result.move)) {
+                                statusLabel.setForeground(TEXT_DIM);
+                                statusLabel.setText("Invalid move returned: " + result.move);
                                 return;
                             }
-                            if (!"MDF DP".equals(method)) {
-                                board.executeMove(mv);
-                                refreshBoard();
+                            if (result.alreadyApplied) {
+                                refreshBoard(result.move);
                                 moveLabel.setText(board.getMoves() + " moves");
-                                statusLabel.setText("Chose move " + mv);
+                                statusLabel.setForeground(TEXT_DIM);
+                                statusLabel.setText("Move " + result.move +
+                                        (result.remaining != null ? " | ~" + result.remaining + " left" : ""));
                                 checkSolved();
+                            } else {
+                                applyMoveWithHighlight(result.move, "Chose move " + result.move);
                             }
                         }
                     } catch (Exception ex) {
-                        if (!isCancelled())
+                        if (!isCancelled()) {
+                            statusLabel.setForeground(TEXT_DIM);
                             statusLabel.setText("Calculation failed");
+                        }
                     } finally {
-                        if (!board.isSolved()) {
+                        if (!board.isSolved() && !autoPlaying) {
                             computerButton.setEnabled(true);
                         }
                         if (stopButton != null)
-                            stopButton.setEnabled(false);
+                            stopButton.setEnabled(autoPlaying);
                     }
                 }
             };
             worker.execute();
+        }
+
+        private void startAutoPlay() {
+            if (!isComputer || board.isSolved()) return;
+
+            autoPlaying = true;
+            computerButton.setEnabled(false);
+            if (autoPlayButton != null) {
+                autoPlayButton.setText("Stop Auto");
+            }
+            if (stopButton != null) stopButton.setEnabled(true);
+
+            if (autoPlayTimer != null) {
+                autoPlayTimer.stop();
+            }
+
+            int delayMs = restartAutoPlayTimer();
+            if (autoPlayTimer == null) {
+                return;
+            }
+            autoPlayTimer.setInitialDelay(0);
+            autoPlayTimer.start();
+
+            statusLabel.setForeground(TEXT_DIM);
+            statusLabel.setText("Auto playing every " + formatDelaySeconds(delayMs) + "s");
+        }
+
+        private int restartAutoPlayTimer() {
+            if (autoPlayTimer != null) {
+                autoPlayTimer.stop();
+            }
+            int delayMs = getAutoPlayDelayMs();
+            autoPlayTimer = new Timer(delayMs, e -> {
+                if (!autoPlaying) return;
+                if (board.isSolved()) {
+                    stopAutoPlay();
+                    return;
+                }
+                if (worker != null && !worker.isDone()) return;
+                runComputerMove(true);
+            });
+            return delayMs;
+        }
+
+        private void stopAutoPlay() {
+            autoPlaying = false;
+            if (autoPlayTimer != null) {
+                autoPlayTimer.stop();
+                autoPlayTimer = null;
+            }
+            if (autoPlayButton != null) {
+                autoPlayButton.setText("Auto Play");
+            }
+            if (!board.isSolved() && computerButton != null) {
+                computerButton.setEnabled(true);
+            }
+            if (stopButton != null && (worker == null || worker.isDone())) {
+                stopButton.setEnabled(false);
+            }
+        }
+
+        private int getAutoPlayDelayMs() {
+            if (globalDelaySpinner == null) return DEFAULT_AUTO_PLAY_DELAY_MS;
+            Object value = globalDelaySpinner.getValue();
+            double seconds = value instanceof Number ? ((Number) value).doubleValue() : 3.5;
+            seconds = Math.max(0.0, Math.min(5.0, seconds));
+            return (int) Math.round(seconds * 1000.0);
+        }
+
+        private String formatDelaySeconds(int delayMs) {
+            return String.format(java.util.Locale.US, "%.1f", delayMs / 1000.0);
         }
 
         private boolean isValidMove(int move) {
@@ -614,8 +730,19 @@ public class TwiddleGUI extends JFrame {
         }
 
         private void refreshBoard() {
+            refreshBoard(-1);
+        }
+
+        private void refreshBoard(int highlightMove) {
             int[][] g = board.getGrid();
             int n = g.length;
+
+            int hr = -1, hc = -1;
+            if (highlightMove >= 1 && highlightMove <= board.totalMoves()) {
+                hr = (highlightMove - 1) / (n - 1);
+                hc = (highlightMove - 1) % (n - 1);
+            }
+
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
                     int v = g[i][j];
@@ -623,15 +750,46 @@ public class TwiddleGUI extends JFrame {
                     cells[i][j].setText(String.valueOf(v));
                     cells[i][j].setBackground(ok ? SOLVED_BG  : TILE_BG);
                     cells[i][j].setForeground(ok ? SOLVED_TILE : TEXT_BRIGHT);
+
+                    boolean inHighlighted2x2 =
+                        hr != -1 && (i == hr || i == hr + 1) && (j == hc || j == hc + 1);
+                    if (inHighlighted2x2) {
+                        cells[i][j].setBorder(BorderFactory.createLineBorder(HIGHLIGHT_ROTATE, 3, true));
+                    } else {
+                        cells[i][j].setBorder(BorderFactory.createLineBorder(TILE_BORDER, 1, true));
+                    }
                 }
             }
         }
 
+        private void applyMoveWithHighlight(int move, String message) {
+            board.executeMove(move);
+            refreshBoard(move);
+            moveLabel.setText(board.getMoves() + " moves");
+            statusLabel.setForeground(TEXT_DIM);
+            statusLabel.setText(message);
+
+            if (rotateFlashTimer != null) {
+                rotateFlashTimer.stop();
+            }
+            rotateFlashTimer = new Timer(ROTATE_FLASH_MS, e -> {
+                refreshBoard();
+                ((Timer) e.getSource()).stop();
+            });
+            rotateFlashTimer.setRepeats(false);
+            rotateFlashTimer.start();
+
+            checkSolved();
+        }
+
         private void checkSolved() {
             if (!board.isSolved()) return;
+            stopAutoPlay();
             statusLabel.setForeground(SOLVED_TILE);
             statusLabel.setText("Solved in " + board.getMoves() + " moves");
             if (computerButton != null) computerButton.setEnabled(false);
+            if (autoPlayButton != null) autoPlayButton.setEnabled(false);
+            if (stopButton != null) stopButton.setEnabled(false);
             humanBtns.forEach(b -> b.setEnabled(false));
         }
     }
@@ -671,6 +829,21 @@ public class TwiddleGUI extends JFrame {
         cb.setForeground(TEXT_BRIGHT);
         cb.setFocusable(false);
         cb.setBorder(BorderFactory.createLineBorder(PANEL_BORDER, 1, true));
+    }
+
+    private void styleDelaySpinner(JSpinner spinner, Color digitColor) {
+        spinner.setPreferredSize(new Dimension(58, 24));
+        spinner.setFont(FONT_STATUS);
+        spinner.setBackground(PANEL_BG);
+        spinner.setForeground(TEXT_BRIGHT);
+        JComponent editor = spinner.getEditor();
+        if (editor instanceof JSpinner.DefaultEditor) {
+            JFormattedTextField tf = ((JSpinner.DefaultEditor) editor).getTextField();
+            tf.setBackground(PANEL_BG);
+            tf.setForeground(digitColor);
+            tf.setCaretColor(digitColor);
+            tf.setBorder(new EmptyBorder(2, 4, 2, 4));
+        }
     }
 
     // ── Custom components ────────────────────────────────────────────────────
