@@ -101,42 +101,62 @@ move = (N-1)*(N-1) → bottom-right 2×2
 
 # Algorithms Implemented
 
-The project includes several solver strategies:
+*Notation: b = branching factor (N-1)^2, d = solution depth, V = total states, E = total transitions.*
 
 ### Search Algorithms
-
 * **Breadth First Search (BFS)**
+    * **Explanation:** Explores all possible board states level by level. Guarantees the shortest path.
+    * **Time Complexity:** O(b^d)
+    * **Space Complexity:** O(b^d) (Stores all visited states)
 * **A* Search**
+    * **Explanation:** Uses a heuristic (like Manhattan distance) to prioritize moves that look "closer" to the goal.
+    * **Time Complexity:** O(b^d) (Worst case, but faster in practice)
+    * **Space Complexity:** O(b^d)
 
 ### Divide & Conquer Approaches
-
-* **Spatial Divide & Conquer**
-* **Cycle-based Divide & Conquer**
-* **Depth-based Divide & Conquer**
+* **Spatial D&C**
+    * **Explanation:** Solves the board section by section (e.g., top row first), reducing the problem size.
+    * **Time Complexity:** O(N^k) (Polynomial)
+    * **Space Complexity:** O(d)
+* **Cycle-based D&C**
+    * **Explanation:** Uses pre-defined "macros" or move sequences to swap specific tiles without breaking the rest of the board.
+    * **Time Complexity:** O(N^2 * L) (L = macro length)
+    * **Space Complexity:** O(N^2)
+* **Depth-based D&C**
+    * **Explanation:** Breaks the search into smaller segments with strict depth limits.
+    * **Time Complexity:** O(b^k) per stage
+    * **Space Complexity:** O(k)
 
 ### Dynamic Programming
-
 * **MDF DP Solver**
-  Precomputes reachable states from the goal.
+    * **Explanation:** Precomputes a massive lookup table of moves from the goal state backwards.
+    * **Time Complexity:** O(V + E)
+    * **Space Complexity:** O(V) (Memory intensive)
+* **Top-Down DP (Memoized IDDFS)**
+	* **Explanation: Combines Iterative Deepening with a memoization table. It caches the results of previously explored board states and remaining depths, significantly pruning redundant calculations.**
+	* **Time Complexity: O(b^d)** 
+	* **Space O(V)**
 
 ### Backtracking
-
 * **Iterative Deepening Backtracking**
-* Uses **heuristic move ordering**
+    * **Explanation:** Combines DFS space efficiency with BFS optimality by gradually increasing search depth.
+    * **Time Complexity:** O(b^d)
+    * **Space Complexity:** O(d)
 
 ---
 
 # Algorithm Comparison
 
-| Algorithm    | Strategy             | Optimal | Performance                |
-| ------------ | -------------------- | ------- | -------------------------- |
-| BFS          | Breadth First Search | Yes     | Slow for large boards      |
-| A*           | Heuristic Search     | Yes     | Faster than BFS            |
-| Spatial D&C  | Divide & Conquer     | Depends | Moderate                   |
-| Cycle D&C    | Divide & Conquer     | Depends | Moderate                   |
-| Depth D&C    | Divide & Conquer     | Depends | Moderate                   |
-| MDF DP       | Dynamic Programming  | Yes     | Very fast for small boards |
-| Backtracking | Iterative Deepening  | Yes     | Slow but complete          |
+| Algorithm    | Strategy             | Optimal | Performance                | Space     |
+| ------------ | -------------------- | ------- | -------------------------- | --------- |
+| BFS          | Breadth First Search | Yes     | Slow for large boards      | Poor      |
+| A* 		   | Heuristic Search     | Yes     | Faster than BFS            | Poor      |
+| Spatial D&C  | Divide & Conquer     | Depends | Moderate                   | Excellent |
+| Cycle D&C    | Divide & Conquer     | Depends | Moderate                   | Excellent |
+| Depth D&C    | Divide & Conquer     | Depends | Moderate                   | Very Good |
+| MDF DP       | Dynamic Programming  | Yes     | Very fast for small boards | Very Poor |
+| Backtracking | Iterative Deepening  | Yes     | Slow but complete          | Excellent |
+| Top Down DP  | Analytical           | Yes     | Variable                   | Excellent |
 
 ---
 
@@ -220,7 +240,8 @@ You will be prompted for:
 4 Cycle D&C
 5 Depth D&C
 6 MDF DP
-7 Backtracking
+7 Top Down DP
+8 Backtracking
 ```
 
 ---
