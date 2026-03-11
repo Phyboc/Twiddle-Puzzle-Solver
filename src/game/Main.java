@@ -25,6 +25,7 @@ public class Main {
         System.out.println("5. Depth D&C");
         System.out.println("6. MDF DP");
         System.out.println("7. Backtracking AI");
+        System.out.println("8. Top-Down DP");
 
         int choice = sc.nextInt();
 
