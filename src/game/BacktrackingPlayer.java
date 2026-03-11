@@ -3,6 +3,8 @@ import java.util.*;
 
 public class BacktrackingPlayer extends AbstractPlayer {
 
+    private Random random = new Random();
+
     public BacktrackingPlayer(Board board) {
         super(board);
     }
@@ -11,38 +13,41 @@ public class BacktrackingPlayer extends AbstractPlayer {
     public int getMove() {
         int[][] currentGrid = board.getGrid();
         
-        // Iterative Deepening
+        //Iterative Deepening 
         for (int maxDepth = 1; maxDepth <= 10; maxDepth++) { 
             Set<String> visited = new HashSet<>();
             List<Integer> path = new ArrayList<>();
             
             if (backtrack(currentGrid, 0, maxDepth, path, visited)) {
+                // If a solution is found, take the first move of that sequence
                 return path.isEmpty() ? 1 : path.get(0);
             }
         }
-        return 1;
+
+        //No path found? Then return current best move
+        return getBestGreedyMove(currentGrid);
     }
 
     private boolean backtrack(int[][] grid, int depth, int maxDepth, List<Integer> path, Set<String> visited) {
         if (isSolved(grid)) return true;
+        
+        //Pruning: if depth+estimateRemaining > maxdepth stop searching this path
         if (depth + estimateRemaining(grid) > maxDepth) return false;
 
         String stateKey = encode(grid);
         if (visited.contains(stateKey)) return false;
         visited.add(stateKey);
 
-        // --- HEURISTIC MOVE ORDERING ---
-        // 1. Create a list of all potential moves with their projected score
+        //Move Ordering
         List<MoveOption> options = new ArrayList<>();
         for (int m = 1; m <= board.totalMoves(); m++) {
             int[][] nextGrid = rotateCopy(grid, m);
             options.add(new MoveOption(m, estimateRemaining(nextGrid), nextGrid));
         }
 
-        // 2. Sort moves by estimated distance to goal (ascending)
+        // Sort: try moves that look "better" first to find solution faster
         options.sort(Comparator.comparingInt(o -> o.score));
 
-        // 3. Explore ordered moves
         for (MoveOption opt : options) {
             path.add(opt.moveId);
             if (backtrack(opt.grid, depth + 1, maxDepth, path, visited)) {
@@ -55,31 +60,42 @@ public class BacktrackingPlayer extends AbstractPlayer {
         return false;
     }
 
-    // Helper class to store and sort moves
-    private static class MoveOption {
-        int moveId, score;
-        int[][] grid;
-        MoveOption(int id, int s, int[][] g) {
-            this.moveId = id;
-            this.score = s;
-            this.grid = g;
+    //Get the best move that reduces number of misplaced tiles.
+	//If there are multiple equally good moves then pick randomly 
+    private int getBestGreedyMove(int[][] grid) {
+        List<Integer> bestMoves = new ArrayList<>();
+        int minScore = Integer.MAX_VALUE;
+
+        for (int m = 1; m <= board.totalMoves(); m++) {
+            int[][] next = rotateCopy(grid, m);
+            int score = estimateRemaining(next);
+
+            if (score < minScore) {
+                minScore = score;
+                bestMoves.clear();
+                bestMoves.add(m);
+            } else if (score == minScore) {
+                bestMoves.add(m);
+            }
         }
+        
+       
+        return bestMoves.get(random.nextInt(bestMoves.size()));
     }
 
     private int estimateRemaining(int[][] g) {
         int misplaced = 0;
         int v = 1;
-        for (int i = 0; i < g.length; i++)
-            for (int j = 0; j < g[0].length; j++)
+        for (int i = 0; i < g.length; i++) {
+            for (int j = 0; j < g[0].length; j++) {
                 if (g[i][j] != v++) misplaced++;
+            }
+        }
+        
         return (int) Math.ceil(misplaced / 4.0);
     }
 
-    // ... (Keep your existing isSolved, rotateCopy, and encode methods)
-
-
     private boolean isSolved(int[][] g) {
-
         int v = 1;
         for (int i = 0; i < g.length; i++) {
             for (int j = 0; j < g[0].length; j++) {
@@ -104,10 +120,7 @@ public class BacktrackingPlayer extends AbstractPlayer {
         g[r + 1][c + 1] = g[r + 1][c];
         g[r + 1][c] = tmp;
         return g;
-
     }
-
-
 
     private String encode(int[][] g) {
         StringBuilder sb = new StringBuilder();
@@ -117,12 +130,20 @@ public class BacktrackingPlayer extends AbstractPlayer {
             }
         }
         return sb.toString();
-
     }
 
-	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    private static class MoveOption {
+        int moveId, score;
+        int[][] grid;
+        MoveOption(int id, int s, int[][] g) {
+            this.moveId = id;
+            this.score = s;
+            this.grid = g;
+        }
+    }
+
+    @Override
+    public String getName() {
+        return "Hybrid Backtracking AI";
+    }
 }
