@@ -18,7 +18,6 @@ public class ComputerPlayer3 {
         public int stateCount() {
             return distance.size();
         }
-
         public boolean isTruncated() {
             return truncated;
         }
@@ -38,13 +37,10 @@ public class ComputerPlayer3 {
         for (int i = 0; i < N; i++)
             for (int j = 0; j < N; j++)
                 goal[i][j] = v++;
-
         Queue<int[][]> q = new ArrayDeque<>();
         q.add(goal);
         distance.put(encode(goal), 0);
-
         boolean truncated = false;
-
         while (!q.isEmpty()) {
             if (Thread.currentThread().isInterrupted()) {
                 throw new RuntimeException(new InterruptedException());
@@ -69,14 +65,12 @@ public class ComputerPlayer3 {
                 }
             }
         }
-
         return new DPData(distance, bestMove, truncated);
     }
 
     public static boolean isSolvable(Board board, DPData data) {
         return data.distance.containsKey(encode(board.getGrid()));
     }
-
     public static Integer distanceToGoal(Board board, DPData data) {
         return data.distance.get(encode(board.getGrid()));
     }
@@ -88,7 +82,6 @@ public class ComputerPlayer3 {
         Integer direct = data.bestMove.get(key);
         if (direct != null)
             return direct;
-
         int bestMove = -1;
         int bestDist = Integer.MAX_VALUE;
 
@@ -96,18 +89,15 @@ public class ComputerPlayer3 {
             if (Thread.currentThread().isInterrupted()) break;
             int[][] next = rotateCopy(grid, m);
             String nextKey = encode(next);
-            if (visited != null && visited.contains(nextKey))
-                continue;
+            if (visited != null && visited.contains(nextKey)) continue;
             Integer d = data.distance.get(nextKey);
             if (d != null && d < bestDist) {
                 bestDist = d;
                 bestMove = m;
             }
         }
-
         if (bestMove != -1)
             return bestMove;
-
         for (int m = 1; m <= board.totalMoves(); m++) {
             if (Thread.currentThread().isInterrupted()) break;
             int[][] next = rotateCopy(grid, m);
@@ -117,7 +107,6 @@ public class ComputerPlayer3 {
                 bestMove = m;
             }
         }
-
         return bestMove == -1 ? 1 : bestMove;
     }
 
@@ -142,7 +131,6 @@ public class ComputerPlayer3 {
         int[][] g = new int[N][N];
         for (int i = 0; i < N; i++)
             g[i] = src[i].clone();
-
         int r = (move - 1) / (N - 1);
         int c = (move - 1) % (N - 1);
 
@@ -151,7 +139,6 @@ public class ComputerPlayer3 {
         g[r + 1][c] = g[r + 1][c + 1];
         g[r + 1][c + 1] = g[r][c + 1];
         g[r][c + 1] = tmp;
-
         return g;
     }
 
