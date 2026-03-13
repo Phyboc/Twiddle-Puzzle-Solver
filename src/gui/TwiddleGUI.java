@@ -44,6 +44,7 @@ public class TwiddleGUI extends JFrame {
     private JComboBox<String> sizeBox;
     private JSpinner globalDelaySpinner;
     private JButton globalAutoPlayButton;
+    private JButton globalMoveNextButton;
     private JPanel methodsContainer;
     private final List<MethodPanel> methodPanels = new ArrayList<>();
 
@@ -96,6 +97,7 @@ public class TwiddleGUI extends JFrame {
 
         JButton rulesBtn = makeBtn("Rules",     new Color(80, 60, 20), ACCENT);
         JButton resetBtn = makeBtn("New Board", BTN_COMPUTER,          TEXT_BRIGHT);
+        globalMoveNextButton = makeBtn("Global Move Next", new Color(70, 95, 170), TEXT_BRIGHT);
         globalAutoPlayButton = makeBtn("Global Auto Play", new Color(85, 110, 200), TEXT_BRIGHT);
 
         JLabel delayLabel = new JLabel("Auto Delay (s)");
@@ -110,11 +112,13 @@ public class TwiddleGUI extends JFrame {
             stopGlobalAutoPlay();
             rebuildBoards();
         });
+        globalMoveNextButton.addActionListener(e -> runGlobalNextMove());
         globalAutoPlayButton.addActionListener(e -> toggleGlobalAutoPlay());
 
         controls.add(sizeBox);
         controls.add(delayLabel);
         controls.add(globalDelaySpinner);
+        controls.add(globalMoveNextButton);
         controls.add(globalAutoPlayButton);
         controls.add(rulesBtn);
         controls.add(resetBtn);
@@ -295,6 +299,15 @@ public class TwiddleGUI extends JFrame {
     private void updateGlobalAutoPlayButton() {
         if (globalAutoPlayButton == null) return;
         globalAutoPlayButton.setText(isAnyComputerAutoPlaying() ? "Stop Global Auto" : "Global Auto Play");
+    }
+
+    private void runGlobalNextMove() {
+        stopGlobalAutoPlay();
+        for (MethodPanel panel : methodPanels) {
+            if (panel.isComputerPanel() && !panel.isSolvedBoard()) {
+                panel.runComputerMove();
+            }
+        }
     }
 
     private class MethodPanel {
