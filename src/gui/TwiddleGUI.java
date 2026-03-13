@@ -314,6 +314,7 @@ public class TwiddleGUI extends JFrame {
         private Timer rotateFlashTimer;
         private boolean autoPlaying;
         private long totalSolverTimeNs = 0;
+        private long dpBuildTimeNs = -1;
 
         private class MoveResult {
             final int move;
@@ -528,8 +529,19 @@ public class TwiddleGUI extends JFrame {
                                 statusLabel.setForeground(TEXT_DIM);
                                 statusLabel.setText("Move " + result.move +
                                     (result.remaining != null ? " | ~" + result.remaining + " left" : ""));
-                                timeLabel.setText("move: " + result.moveTimeNs + " ns"
-                                    + "  |  total: " + totalSolverTimeNs + " ns");
+                                if ("MDF DP".equals(method) && dpBuildTimeNs >= 0) {
+                                    String compact = "<html>tq:" + totalSolverTimeNs + "ns b:" + dpBuildTimeNs
+                                        + "ns<br>m:" + result.moveTimeNs + "ns</html>";
+                                    String full = "build: " + dpBuildTimeNs + " ns"
+                                        + " | move: " + result.moveTimeNs + " ns"
+                                        + " | total query: " + totalSolverTimeNs + " ns";
+                                    setTimeLabel(compact, full);
+                                } else {
+                                    String compact = "m:" + result.moveTimeNs + "ns t:" + totalSolverTimeNs + "ns";
+                                    String full = "move: " + result.moveTimeNs + " ns"
+                                        + " | total: " + totalSolverTimeNs + " ns";
+                                    setTimeLabel(compact, full);
+                                }
                                 checkSolved();
                             } else {
                                 applyMoveWithHighlight(result.move,
@@ -654,7 +666,7 @@ public class TwiddleGUI extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                 statusLabel.setText("Building DP table...");
-                timeLabel.setText("");
+                setTimeLabel("", null);
             });
 
             try {
@@ -667,8 +679,9 @@ public class TwiddleGUI extends JFrame {
             }
 
             final long buildNs = dpInit.buildTimeNs();
+            dpBuildTimeNs = buildNs;
             SwingUtilities.invokeLater(() ->
-                timeLabel.setText("build: " + buildNs + " ns")
+                setTimeLabel("b:" + buildNs + "ns", "build: " + buildNs + " ns")
             );
 
             if (dpInit.reshuffles() > 0) {
@@ -719,8 +732,9 @@ public class TwiddleGUI extends JFrame {
             statusLabel.setText(message);
             if (moveTimeNs > 0) {
                 totalSolverTimeNs += moveTimeNs;
-                timeLabel.setText("move: " + moveTimeNs + " ns"
-                    + "  |  total: " + totalSolverTimeNs + " ns");
+                String compact = "m:" + moveTimeNs + "ns t:" + totalSolverTimeNs + "ns";
+                String full = "move: " + moveTimeNs + " ns | total: " + totalSolverTimeNs + " ns";
+                setTimeLabel(compact, full);
             }
             if (rotateFlashTimer != null) rotateFlashTimer.stop();
             rotateFlashTimer = new Timer(ROTATE_FLASH_MS, e -> {
@@ -737,12 +751,26 @@ public class TwiddleGUI extends JFrame {
             stopAutoPlay();
             statusLabel.setForeground(SOLVED_TILE);
             statusLabel.setText("Solved in " + board.getMoves() + " moves");
-            timeLabel.setText("total solver time: " + totalSolverTimeNs + " ns");
+            if ("MDF DP".equals(method) && dpBuildTimeNs >= 0) {
+                String compact = "tq:" + totalSolverTimeNs + "ns b:" + dpBuildTimeNs + "ns";
+                String full = "build: " + dpBuildTimeNs + " ns | total query: " + totalSolverTimeNs + " ns";
+                setTimeLabel(compact, full);
+            } else {
+                String compact = "t:" + totalSolverTimeNs + "ns";
+                String full = "total solver time: " + totalSolverTimeNs + " ns";
+                setTimeLabel(compact, full);
+            }
             if (computerButton != null) computerButton.setEnabled(false);
             if (autoPlayButton != null) autoPlayButton.setEnabled(false);
             if (stopButton != null) stopButton.setEnabled(false);
             humanBtns.forEach(b -> b.setEnabled(false));
             updateGlobalAutoPlayButton();
+        }
+
+        private void setTimeLabel(String compactText, String fullText) {
+            String text = compactText == null ? "" : compactText;
+            timeLabel.setText(text);
+            timeLabel.setToolTipText(fullText);
         }
     }
 
