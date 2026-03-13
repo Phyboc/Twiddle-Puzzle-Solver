@@ -68,8 +68,6 @@ public class TwiddleGUI extends JFrame {
         setVisible(true);
     }
 
-    // ── Header ───────────────────────────────────────────────────────────────
-
     private void buildHeader() {
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setOpaque(false);
@@ -126,8 +124,6 @@ public class TwiddleGUI extends JFrame {
         add(header, BorderLayout.NORTH);
     }
 
-    // ── Rules dialog ─────────────────────────────────────────────────────────
-
     private void showRulesDialog() {
         JDialog dlg = new JDialog(this, "Twiddle — Rules & Algorithms", true);
         dlg.setSize(640, 580);
@@ -153,83 +149,27 @@ public class TwiddleGUI extends JFrame {
         body.setBorder(new EmptyBorder(16, 22, 16, 22));
 
         String[][] sections = {
-            {
-                "Objective",
-                "Arrange the numbered tiles into ascending order (1, 2, 3 ... n^2) reading " +
-                "left-to-right, top-to-bottom. The puzzle is solved when every tile sits " +
-                "in its correct position."
-            },
-            {
-                "The Twiddle Move",
-                "A 'twiddle' rotates a 2x2 sub-grid of the board by 90 degrees clockwise. " +
-                "On an n x n board there are (n-1)^2 such sub-grids, each numbered 1 to (n-1)^2. " +
-                "Move k corresponds to the sub-grid whose top-left corner is at " +
-                "row floor((k-1)/(n-1)), column (k-1) mod (n-1)."
-            },
-            {
-                "Human Mode",
-                "Numbered buttons appear below your board. Press a button to apply that " +
-                "twiddle. Tiles that are already in their correct position are highlighted " +
-                "in green. Try to beat the AIs!"
-            },
-            {
-                "A* Search",
-                "An informed best-first search guided by an admissible heuristic (misplaced " +
-                "tiles / 4). Guaranteed to find the optimal (fewest-move) solution. " +
-                "Can be slow on large boards due to state-space size."
-            },
-            {
-                "BFS",
-                "Breadth-first search explores all states level by level. Also optimal, " +
-                "but consumes more memory than A* because no heuristic prunes the frontier."
-            },
-            {
-                "Bidirectional BFS",
-                "Runs two simultaneous BFS frontiers: one forward from the scrambled state, " +
-                "one backward from the goal using inverse twiddle moves. They expand toward " +
-                "each other and stop the moment they meet. Explores ~b^(d/2) states instead " +
-                "of b^d — a dramatic speedup over standard BFS while still guaranteeing an " +
-                "optimal solution."
-            },
-            {
-                "Spatial D&C",
-                "Divide & Conquer that splits the board into spatial regions and solves " +
-                "each independently. Fast, but may not yield the minimum move count."
-            },
-            {
-                "Cycle D&C",
-                "Divide & Conquer based on permutation cycles. Decomposes the goal " +
-                "permutation into independent cycles and solves each cycle in sequence."
-            },
-            {
-                "Depth D&C",
-                "Divide & Conquer that recurses by board depth (rows/columns). Tiles are " +
-                "placed into their final rows first, then columns."
-            },
-            {
-                "MDF DP",
-                "Minimum-Depth-First Dynamic Programming. Pre-computes a lookup table of " +
-                "optimal move sequences for reachable board states (max 2,000,000 states). " +
-                "Very fast once built, but table construction can be time-consuming for 4x4."
-            },
-            {
-                "Backtracking AI",
-                "Iterative-deepening backtracking with move ordering and pruning. Explores " +
-                "the move tree and backtracks when a dead-end is detected. Falls back to a " +
-                "greedy best move if no solution is found within depth 10."
-            },
-            {
-                "Top-Down DP",
-                "Top-down memoised search keyed on (state, remaining-depth). Combines " +
-                "iterative deepening with a memo table so repeated sub-problems are solved " +
-                "only once. Bridges backtracking and dynamic programming."
-            },
-            {
-                "Tips",
-                "- Click 'New Board' to generate a fresh scrambled board shared by all solvers.\n" +
-                "- Switch between 3x3 and 4x4 with the size selector — 4x4 is significantly harder.\n" +
-                "- Green tile = correctly placed. Count your moves against each AI's total!"
-            }
+            { "Objective",
+              "Arrange the numbered tiles into ascending order (1, 2, 3 ... n^2) reading " +
+              "left-to-right, top-to-bottom." },
+            { "The Twiddle Move",
+              "A 'twiddle' rotates a 2x2 sub-grid of the board by 90 degrees counter-clockwise." },
+            { "Human Mode",
+              "Numbered buttons appear below your board. Press a button to apply that twiddle." },
+            { "A* Search",       "Informed best-first search with admissible heuristic (misplaced tiles / 4)." },
+            { "BFS",             "Breadth-first search — optimal but memory-intensive." },
+            { "Bidirectional BFS","Two simultaneous BFS frontiers meeting in the middle." },
+            { "Spatial D&C",     "Divide & Conquer splitting the board into spatial regions." },
+            { "Cycle D&C",       "Divide & Conquer based on permutation cycles." },
+            { "Depth D&C",       "Divide & Conquer recursing by rows then columns." },
+            { "MDF DP",          "Pre-computes optimal move table via reverse BFS (up to 2M states). " +
+                                  "Build time is shown separately from per-move query time." },
+            { "Backtracking AI", "Iterative-deepening with move ordering and admissible pruning." },
+            { "Top-Down DP",     "Memoised iterative deepening — bridges backtracking and DP." },
+            { "Timing",
+                            "Each panel shows the time taken for the most recent solver call in nanoseconds. " +
+              "For MDF DP the table build time is shown once after initialisation. " +
+              "Total elapsed time is shown when the puzzle is solved." }
         };
 
         for (String[] sec : sections) {
@@ -298,10 +238,7 @@ public class TwiddleGUI extends JFrame {
         });
     }
 
-    // ── Methods viewport ─────────────────────────────────────────────────────
-
     private void buildMethodsArea() {
-        // 9 AI panels + 1 Human panel = 10 total -> 2 rows x 5 columns
         methodsContainer = new JPanel(new GridLayout(2, 5, 10, 10));
         methodsContainer.setOpaque(false);
         add(methodsContainer, BorderLayout.CENTER);
@@ -330,37 +267,28 @@ public class TwiddleGUI extends JFrame {
     }
 
     private void toggleGlobalAutoPlay() {
-        if (isAnyComputerAutoPlaying()) {
-            stopGlobalAutoPlay();
-        } else {
-            startGlobalAutoPlay();
-        }
+        if (isAnyComputerAutoPlaying()) stopGlobalAutoPlay();
+        else startGlobalAutoPlay();
     }
 
     private void startGlobalAutoPlay() {
-        for (MethodPanel panel : methodPanels) {
-            if (panel.isComputerPanel() && !panel.isSolvedBoard()) {
+        for (MethodPanel panel : methodPanels)
+            if (panel.isComputerPanel() && !panel.isSolvedBoard())
                 panel.startAutoPlay();
-            }
-        }
         updateGlobalAutoPlayButton();
     }
 
     private void stopGlobalAutoPlay() {
-        for (MethodPanel panel : methodPanels) {
-            if (panel.isComputerPanel()) {
+        for (MethodPanel panel : methodPanels)
+            if (panel.isComputerPanel())
                 panel.stopAutoPlay();
-            }
-        }
         updateGlobalAutoPlayButton();
     }
 
     private boolean isAnyComputerAutoPlaying() {
-        for (MethodPanel panel : methodPanels) {
-            if (panel.isComputerPanel() && panel.isAutoPlaying()) {
+        for (MethodPanel panel : methodPanels)
+            if (panel.isComputerPanel() && panel.isAutoPlaying())
                 return true;
-            }
-        }
         return false;
     }
 
@@ -369,13 +297,11 @@ public class TwiddleGUI extends JFrame {
         globalAutoPlayButton.setText(isAnyComputerAutoPlaying() ? "Stop Global Auto" : "Global Auto Play");
     }
 
-    // ── MethodPanel ──────────────────────────────────────────────────────────
-
     private class MethodPanel {
         final JPanel container;
         private final Board board;
         private final JLabel[][] cells;
-        private final JLabel moveLabel, statusLabel;
+        private final JLabel moveLabel, statusLabel, timeLabel;
         private final JButton computerButton;
         private final JButton autoPlayButton;
         private final JButton stopButton;
@@ -387,16 +313,19 @@ public class TwiddleGUI extends JFrame {
         private Timer autoPlayTimer;
         private Timer rotateFlashTimer;
         private boolean autoPlaying;
+        private long totalSolverTimeNs = 0;
 
         private class MoveResult {
             final int move;
             final Integer remaining;
             final boolean alreadyApplied;
+            final long moveTimeNs;
 
-            MoveResult(int move, Integer remaining, boolean alreadyApplied) {
+            MoveResult(int move, Integer remaining, boolean alreadyApplied, long moveTimeNs) {
                 this.move = move;
                 this.remaining = remaining;
                 this.alreadyApplied = alreadyApplied;
+                this.moveTimeNs = moveTimeNs;
             }
         }
 
@@ -410,7 +339,6 @@ public class TwiddleGUI extends JFrame {
             container.setLayout(new BorderLayout(0, 6));
             container.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-            // ── Top bar ──
             JPanel top = new JPanel(new BorderLayout(4, 0));
             top.setOpaque(false);
 
@@ -433,7 +361,6 @@ public class TwiddleGUI extends JFrame {
             top.add(moveLabel, BorderLayout.EAST);
             container.add(top, BorderLayout.NORTH);
 
-            // ── Grid ──
             int size = board.size();
             cells = new JLabel[size][size];
             JPanel grid = new JPanel(new GridLayout(size, size, 3, 3));
@@ -456,7 +383,6 @@ public class TwiddleGUI extends JFrame {
             }
             container.add(grid, BorderLayout.CENTER);
 
-            // ── Bottom ──
             JPanel bottom = new JPanel();
             bottom.setOpaque(false);
             bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
@@ -465,7 +391,14 @@ public class TwiddleGUI extends JFrame {
             statusLabel.setFont(FONT_STATUS);
             statusLabel.setForeground(TEXT_DIM);
             statusLabel.setAlignmentX(LEFT_ALIGNMENT);
+
+            timeLabel = new JLabel("");
+            timeLabel.setFont(FONT_STATUS);
+            timeLabel.setForeground(new Color(100, 180, 255));
+            timeLabel.setAlignmentX(LEFT_ALIGNMENT);
+
             bottom.add(statusLabel);
+            bottom.add(timeLabel);
             bottom.add(Box.createVerticalStrut(5));
 
             if (isComputer) {
@@ -533,7 +466,7 @@ public class TwiddleGUI extends JFrame {
         private void runHumanMove(int move) {
             if (board.isSolved()) return;
             if (!isValidMove(move)) { statusLabel.setText("Invalid move: " + move); return; }
-            applyMoveWithHighlight(move, "Move " + move + " applied");
+            applyMoveWithHighlight(move, "Move " + move + " applied", 0);
         }
 
         private void runComputerMove() {
@@ -547,28 +480,26 @@ public class TwiddleGUI extends JFrame {
             statusLabel.setForeground(TEXT_DIM);
             statusLabel.setText(fromAutoPlay ? "Auto thinking..." : "Thinking...");
             computerButton.setEnabled(false);
-            if (autoPlayButton != null) {
-                autoPlayButton.setEnabled(!board.isSolved());
-            }
+            if (autoPlayButton != null) autoPlayButton.setEnabled(!board.isSolved());
             if (stopButton != null) stopButton.setEnabled(true);
 
             worker = new SwingWorker<MoveResult, Void>() {
                 @Override protected MoveResult doInBackground() {
                     try {
                         if ("MDF DP".equals(method)) {
-                            if (!ensureDP()) {
-                                return null;
-                            }
-
-                            if (!dpInit.session().isSolvable(board))
-                                return null;
+                            if (!ensureDP()) return null;
+                            if (!dpInit.session().isSolvable(board)) return null;
 
                             DPFlow.StepResult step = dpInit.session().playNextMove(board);
-                            return new MoveResult(step.move(), step.estimatedRemaining(), true);
+                            long moveTime = dpInit.session().getLastMoveTimeNs();
+                            return new MoveResult(step.move(), step.estimatedRemaining(), true, moveTime);
                         } else {
-                            final Player p = buildPlayer();
+                            Player p = buildPlayer();
                             if (p == null) return null;
-                            return new MoveResult(p.getMove(), null, false);
+                            long start = System.nanoTime();
+                            int move = p.getMove();
+                            long moveTime = System.nanoTime() - start;
+                            return new MoveResult(move, null, false, moveTime);
                         }
                     } catch (Exception ex) {
                         if (isCancelled()) return null;
@@ -591,14 +522,18 @@ public class TwiddleGUI extends JFrame {
                                 return;
                             }
                             if (result.alreadyApplied) {
+                                totalSolverTimeNs += result.moveTimeNs;
                                 refreshBoard(result.move);
                                 moveLabel.setText(board.getMoves() + " moves");
                                 statusLabel.setForeground(TEXT_DIM);
                                 statusLabel.setText("Move " + result.move +
-                                        (result.remaining != null ? " | ~" + result.remaining + " left" : ""));
+                                    (result.remaining != null ? " | ~" + result.remaining + " left" : ""));
+                                timeLabel.setText("move: " + result.moveTimeNs + " ns"
+                                    + "  |  total: " + totalSolverTimeNs + " ns");
                                 checkSolved();
                             } else {
-                                applyMoveWithHighlight(result.move, "Chose move " + result.move);
+                                applyMoveWithHighlight(result.move,
+                                    "Chose move " + result.move, result.moveTimeNs);
                             }
                         }
                     } catch (Exception ex) {
@@ -607,9 +542,8 @@ public class TwiddleGUI extends JFrame {
                             statusLabel.setText("Calculation failed");
                         }
                     } finally {
-                        if (!board.isSolved() && !autoPlaying) {
+                        if (!board.isSolved() && !autoPlaying)
                             computerButton.setEnabled(true);
-                        }
                         if (stopButton != null)
                             stopButton.setEnabled(autoPlaying);
                     }
@@ -620,41 +554,25 @@ public class TwiddleGUI extends JFrame {
 
         private void startAutoPlay() {
             if (!isComputer || board.isSolved()) return;
-
             autoPlaying = true;
             computerButton.setEnabled(false);
-            if (autoPlayButton != null) {
-                autoPlayButton.setText("Stop Auto");
-            }
+            if (autoPlayButton != null) autoPlayButton.setText("Stop Auto");
             if (stopButton != null) stopButton.setEnabled(true);
-
-            if (autoPlayTimer != null) {
-                autoPlayTimer.stop();
-            }
-
+            if (autoPlayTimer != null) autoPlayTimer.stop();
             int delayMs = restartAutoPlayTimer();
-            if (autoPlayTimer == null) {
-                return;
-            }
             autoPlayTimer.setInitialDelay(0);
             autoPlayTimer.start();
-
             statusLabel.setForeground(TEXT_DIM);
             statusLabel.setText("Auto playing every " + formatDelaySeconds(delayMs) + "s");
             updateGlobalAutoPlayButton();
         }
 
         private int restartAutoPlayTimer() {
-            if (autoPlayTimer != null) {
-                autoPlayTimer.stop();
-            }
+            if (autoPlayTimer != null) autoPlayTimer.stop();
             int delayMs = getAutoPlayDelayMs();
             autoPlayTimer = new Timer(delayMs, e -> {
                 if (!autoPlaying) return;
-                if (board.isSolved()) {
-                    stopAutoPlay();
-                    return;
-                }
+                if (board.isSolved()) { stopAutoPlay(); return; }
                 if (worker != null && !worker.isDone()) return;
                 runComputerMove(true);
             });
@@ -663,33 +581,17 @@ public class TwiddleGUI extends JFrame {
 
         private void stopAutoPlay() {
             autoPlaying = false;
-            if (autoPlayTimer != null) {
-                autoPlayTimer.stop();
-                autoPlayTimer = null;
-            }
-            if (autoPlayButton != null) {
-                autoPlayButton.setText("Auto Play");
-            }
-            if (!board.isSolved() && computerButton != null) {
-                computerButton.setEnabled(true);
-            }
-            if (stopButton != null && (worker == null || worker.isDone())) {
+            if (autoPlayTimer != null) { autoPlayTimer.stop(); autoPlayTimer = null; }
+            if (autoPlayButton != null) autoPlayButton.setText("Auto Play");
+            if (!board.isSolved() && computerButton != null) computerButton.setEnabled(true);
+            if (stopButton != null && (worker == null || worker.isDone()))
                 stopButton.setEnabled(false);
-            }
             updateGlobalAutoPlayButton();
         }
 
-        private boolean isComputerPanel() {
-            return isComputer;
-        }
-
-        private boolean isAutoPlaying() {
-            return autoPlaying;
-        }
-
-        private boolean isSolvedBoard() {
-            return board.isSolved();
-        }
+        private boolean isComputerPanel() { return isComputer; }
+        private boolean isAutoPlaying()   { return autoPlaying; }
+        private boolean isSolvedBoard()   { return board.isSolved(); }
 
         private int getAutoPlayDelayMs() {
             if (globalDelaySpinner == null) return DEFAULT_AUTO_PLAY_DELAY_MS;
@@ -730,26 +632,8 @@ public class TwiddleGUI extends JFrame {
             }
         }
 
-        private void runDPMove() {
-            if (!ensureDP()) return;
-            if (!dpInit.session().isSolvable(board)) {
-                statusLabel.setText("Not solvable by DP");
-                return;
-            }
-            DPFlow.StepResult step = dpInit.session().playNextMove(board);
-            refreshBoard();
-            moveLabel.setText(board.getMoves() + " moves");
-            Integer rem = step.estimatedRemaining();
-            statusLabel.setText("Move " + step.move() +
-                (rem != null ? " | ~" + rem + " left" : ""));
-            checkSolved();
-        }
-
         private boolean ensureDP() {
-            // make this method safe to call from either EDT or a background thread
             if (dpInit != null) return true;
-
-            // show confirmation dialog on EDT and wait for result
             if (board.size() > 3) {
                 final int[] ans = new int[1];
                 try {
@@ -759,9 +643,7 @@ public class TwiddleGUI extends JFrame {
                             "Build DP Table", JOptionPane.YES_NO_OPTION,
                             JOptionPane.WARNING_MESSAGE)
                     );
-                } catch (Exception e) {
-                    return false;
-                }
+                } catch (Exception e) { return false; }
                 if (ans[0] != JOptionPane.YES_OPTION) {
                     SwingUtilities.invokeLater(() -> statusLabel.setText("Cancelled"));
                     return false;
@@ -769,26 +651,31 @@ public class TwiddleGUI extends JFrame {
             }
 
             Cursor prev = getCursor();
-            // update UI via EDT
-            SwingUtilities.invokeLater(() -> setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)));
-            SwingUtilities.invokeLater(() -> statusLabel.setText("Building DP table..."));
+            SwingUtilities.invokeLater(() -> {
+                setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+                statusLabel.setText("Building DP table...");
+                timeLabel.setText("");
+            });
 
             try {
                 dpInit = DPFlow.initialize(board);
             } catch (RuntimeException e) {
-                if (Thread.currentThread().isInterrupted()) {
-                    return false; // cancelled during build
-                }
+                if (Thread.currentThread().isInterrupted()) return false;
                 throw e;
             } finally {
                 SwingUtilities.invokeLater(() -> setCursor(prev));
             }
 
+            final long buildNs = dpInit.buildTimeNs();
+            SwingUtilities.invokeLater(() ->
+                timeLabel.setText("build: " + buildNs + " ns")
+            );
+
             if (dpInit.reshuffles() > 0) {
                 SwingUtilities.invokeLater(() -> {
                     refreshBoard();
                     moveLabel.setText(board.getMoves() + " moves");
-                    statusLabel.setText("Reshuffled");
+                    statusLabel.setText("Reshuffled (" + dpInit.reshuffles() + ")");
                 });
             }
             if (!dpInit.session().isSolvable(board)) {
@@ -798,20 +685,16 @@ public class TwiddleGUI extends JFrame {
             return true;
         }
 
-        private void refreshBoard() {
-            refreshBoard(-1);
-        }
+        private void refreshBoard() { refreshBoard(-1); }
 
         private void refreshBoard(int highlightMove) {
             int[][] g = board.getGrid();
             int n = g.length;
-
             int hr = -1, hc = -1;
             if (highlightMove >= 1 && highlightMove <= board.totalMoves()) {
                 hr = (highlightMove - 1) / (n - 1);
                 hc = (highlightMove - 1) % (n - 1);
             }
-
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
                     int v = g[i][j];
@@ -819,35 +702,33 @@ public class TwiddleGUI extends JFrame {
                     cells[i][j].setText(String.valueOf(v));
                     cells[i][j].setBackground(ok ? SOLVED_BG  : TILE_BG);
                     cells[i][j].setForeground(ok ? SOLVED_TILE : TEXT_BRIGHT);
-
                     boolean inHighlighted2x2 =
                         hr != -1 && (i == hr || i == hr + 1) && (j == hc || j == hc + 1);
-                    if (inHighlighted2x2) {
-                        cells[i][j].setBorder(BorderFactory.createLineBorder(HIGHLIGHT_ROTATE, 3, true));
-                    } else {
-                        cells[i][j].setBorder(BorderFactory.createLineBorder(TILE_BORDER, 1, true));
-                    }
+                    cells[i][j].setBorder(inHighlighted2x2
+                        ? BorderFactory.createLineBorder(HIGHLIGHT_ROTATE, 3, true)
+                        : BorderFactory.createLineBorder(TILE_BORDER, 1, true));
                 }
             }
         }
 
-        private void applyMoveWithHighlight(int move, String message) {
+        private void applyMoveWithHighlight(int move, String message, long moveTimeNs) {
             board.executeMove(move);
             refreshBoard(move);
             moveLabel.setText(board.getMoves() + " moves");
             statusLabel.setForeground(TEXT_DIM);
             statusLabel.setText(message);
-
-            if (rotateFlashTimer != null) {
-                rotateFlashTimer.stop();
+            if (moveTimeNs > 0) {
+                totalSolverTimeNs += moveTimeNs;
+                timeLabel.setText("move: " + moveTimeNs + " ns"
+                    + "  |  total: " + totalSolverTimeNs + " ns");
             }
+            if (rotateFlashTimer != null) rotateFlashTimer.stop();
             rotateFlashTimer = new Timer(ROTATE_FLASH_MS, e -> {
                 refreshBoard();
                 ((Timer) e.getSource()).stop();
             });
             rotateFlashTimer.setRepeats(false);
             rotateFlashTimer.start();
-
             checkSolved();
         }
 
@@ -856,6 +737,7 @@ public class TwiddleGUI extends JFrame {
             stopAutoPlay();
             statusLabel.setForeground(SOLVED_TILE);
             statusLabel.setText("Solved in " + board.getMoves() + " moves");
+            timeLabel.setText("total solver time: " + totalSolverTimeNs + " ns");
             if (computerButton != null) computerButton.setEnabled(false);
             if (autoPlayButton != null) autoPlayButton.setEnabled(false);
             if (stopButton != null) stopButton.setEnabled(false);
@@ -863,8 +745,6 @@ public class TwiddleGUI extends JFrame {
             updateGlobalAutoPlayButton();
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private int[][] copyGrid(int[][] src) {
         int[][] c = new int[src.length][src[0].length];
@@ -886,9 +766,7 @@ public class TwiddleGUI extends JFrame {
             @Override public void mouseEntered(MouseEvent e) {
                 if (b.isEnabled()) b.setBackground(bg.brighter());
             }
-            @Override public void mouseExited(MouseEvent e) {
-                b.setBackground(bg);
-            }
+            @Override public void mouseExited(MouseEvent e) { b.setBackground(bg); }
         });
         return b;
     }
@@ -916,17 +794,12 @@ public class TwiddleGUI extends JFrame {
         }
     }
 
-    // ── Custom components ────────────────────────────────────────────────────
-
     private static class GradientPanel extends JPanel {
         @Override protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setPaint(new GradientPaint(
-                0, 0, new Color(8, 12, 24),
-                0, getHeight(), new Color(18, 24, 48)));
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setPaint(new GradientPaint(0, 0, new Color(8, 12, 24), 0, getHeight(), new Color(18, 24, 48)));
             g2.fillRect(0, 0, getWidth(), getHeight());
             g2.dispose();
         }
@@ -941,8 +814,7 @@ public class TwiddleGUI extends JFrame {
         }
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(bg);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
             g2.setColor(border);
@@ -952,8 +824,6 @@ public class TwiddleGUI extends JFrame {
             super.paintComponent(g);
         }
     }
-
-    // ── Main ─────────────────────────────────────────────────────────────────
 
     public static void main(String[] args) {
         try {
@@ -972,7 +842,6 @@ public class TwiddleGUI extends JFrame {
                 }
             }
         } catch (Exception ignored) {}
-
         SwingUtilities.invokeLater(TwiddleGUI::new);
     }
 }

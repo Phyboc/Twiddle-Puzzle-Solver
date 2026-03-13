@@ -27,6 +27,7 @@ public class BacktrackingPlayer extends AbstractPlayer {
 
         //No path found? Then return current best move
         return getBestGreedyMove(currentGrid);
+        
     }
 
     private boolean backtrack(int[][] grid, int depth, int maxDepth, List<Integer> path, Set<String> visited) {

@@ -67,7 +67,7 @@ public class Main {
                 DPFlow.Initialization init = DPFlow.initialize(board);
                 ComputerPlayer3.DPData dp = init.session().data();
 
-                System.out.println("DP table built. States: " + dp.stateCount());
+                System.out.println("DP table built in " + init.buildTimeNs() + " ns. States: " + dp.stateCount());
                 if (dp.isTruncated()) {
                     System.out.println("Warning: DP table hit memory/state limit. "
                         + "Solver will use partial policy.");
@@ -114,21 +114,35 @@ public class Main {
         board.print();
 
         sc.nextLine();
+        long totalTimeNs = 0;
+
         while (!board.isSolved()) {
             System.out.print("\nPress ENTER for computer move (or q to quit): ");
             String input = sc.nextLine();
-            if (input.equalsIgnoreCase("q")) {
-                break;
+            if (input.equalsIgnoreCase("q")) break;
+
+            int move;
+            long moveTimeNs;
+
+            if (computer instanceof AbstractPlayer) {
+                move = ((AbstractPlayer) computer).getTimedMove();
+                moveTimeNs = ((AbstractPlayer) computer).getLastSolveTimeNs();
+            } else {
+                long start = System.nanoTime();
+                move = computer.getMove();
+                moveTimeNs = System.nanoTime() - start;
             }
 
-            int move = computer.getMove();
-            System.out.println("Computer chooses move: " + move);
+            totalTimeNs += moveTimeNs;
+            System.out.println("Computer chooses move: " + move
+                + "  [move time: " + moveTimeNs + " ns]");
             board.executeMove(move);
             board.print();
         }
 
         if (board.isSolved()) {
-            System.out.println("Puzzle solved in " + board.getMoves() + " moves!");
+            System.out.println("Puzzle solved in " + board.getMoves()
+                + " moves! Total solver time: " + totalTimeNs + " ns");
         } else {
             System.out.println("Stopped by user.");
         }
@@ -139,12 +153,12 @@ public class Main {
         board.print();
 
         sc.nextLine();
+        long totalMoveTimeNs = 0;
+
         while (!board.isSolved()) {
             System.out.print("\nPress ENTER for next move (or q to quit): ");
             String input = sc.nextLine();
-            if (input.equalsIgnoreCase("q")) {
-                break;
-            }
+            if (input.equalsIgnoreCase("q")) break;
 
             if (!session.isSolvable(board)) {
                 System.out.println("This board configuration cannot reach the goal.");
@@ -152,7 +166,11 @@ public class Main {
             }
 
             DPFlow.StepResult step = session.playNextMove(board);
-            System.out.println("Computer chooses move: " + step.move());
+            long moveTimeNs = session.getLastMoveTimeNs();
+            totalMoveTimeNs += moveTimeNs;
+
+            System.out.println("Computer chooses move: " + step.move()
+                + "  [move time: " + moveTimeNs + " ns]");
             if (step.estimatedRemaining() != null) {
                 System.out.println("Estimated remaining moves (DP): "
                     + step.estimatedRemaining());
@@ -161,7 +179,8 @@ public class Main {
         }
 
         if (board.isSolved()) {
-            System.out.println("Puzzle solved in " + board.getMoves() + " moves!");
+            System.out.println("Puzzle solved in " + board.getMoves()
+                + " moves! Total query time: " + totalMoveTimeNs + " ns");
         }
     }
 }
